@@ -1,0 +1,6 @@
+[deck]
+brightness = 100
+
+[b8]
+icon = "/home/dragonblade316/Pictures/fighter.png"
+command = "kitty"
