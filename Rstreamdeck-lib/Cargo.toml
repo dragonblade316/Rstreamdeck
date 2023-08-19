@@ -10,3 +10,4 @@ abi_stable = "0.11.1"
 image = "0.24.6"
 resvg = "0.35.0"
 rusttype = "0.9.3"
+serde = { version = "1.0.181", features = ["derive"] }
