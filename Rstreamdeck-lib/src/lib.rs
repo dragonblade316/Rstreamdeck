@@ -13,7 +13,7 @@ extern crate rusttype;
 use image::imageops;
 
 ///requests that are sent from the controller to the pluginc
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum ServerToClientMessage {
     PRESSED(u8),
     ASSETCALL(u8),
@@ -21,7 +21,7 @@ pub enum ServerToClientMessage {
     ERROR,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum ClientToServerMessage {
     INITIALREPORT(InitialReport),
     ASSETREPORT(AssetReport),
@@ -33,7 +33,7 @@ pub enum Error {
     UNEXPECTED_MESSAGE,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct InitialReport {
     pub name: String,
     pub desc: Option<String>,
@@ -42,14 +42,14 @@ pub struct InitialReport {
 }
 
 ///will be sent from the controller to the plugin to register a new button
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct NewButton {
     id: u8,
     position: [u8; 2],
 }
 
 ///reports data such as the icon
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AssetReport {
     id: u8,
     text: String,
@@ -64,9 +64,7 @@ pub fn load_icon(path: PathBuf) -> Option<image::DynamicImage> {
     let svg = &OsString::from("svg");
 
     match path.extension().unwrap() {
-        svg => {
-            todo!()
-        }
+        //svg => None,
         _ => match image::io::Reader::open(path) {
             Ok(reader) => match reader.decode() {
                 Ok(image) => Some(image.resize_exact(72, 72, imageops::FilterType::Gaussian)),
@@ -80,7 +78,6 @@ pub fn load_icon(path: PathBuf) -> Option<image::DynamicImage> {
                 None
             }
         },
-        _ => None,
     }
 }
 

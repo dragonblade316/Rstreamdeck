@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 use std::eprintln;
+use std::fmt::Debug;
+use std::println;
+use std::unimplemented;
 
 use crate::plugin;
 use anyhow::Result;
@@ -15,16 +18,15 @@ pub struct Deck {
     brightness: u8,
     buttons: Vec<Button>,
     manager: PluginManager,
+    last_state: Vec<u8>,
 }
 
 impl Deck {
     pub fn new(config: stdStreamdeckToml) -> Result<Deck> {
-        let mut man = PluginManager::new()?;
+        let mut man = PluginManager::new().expect("failed to start plugin manager");
 
         let vendorid = 0x0FD9;
         let mut pid: Option<u16> = None;
-
-        let mut deck: StreamDeck;
 
         let hid = hidapi::HidApi::new().expect("could not open hidapi");
 
@@ -33,14 +35,6 @@ impl Deck {
                 pid = Some(i.product_id());
             }
         });
-
-        match pid {
-            Some(id) => {
-                deck = streamdeck::StreamDeck::connect_with_hid(&hid, vendorid, id, None)
-                    .expect("could not connect to streamdeck");
-            }
-            None => panic!("no streamdeck detected"),
-        }
 
         let deck: StreamDeck;
         match pid {
@@ -77,7 +71,7 @@ impl Deck {
             match bconfig.plugin {
                 Some(p) => plugin = man.load_plugin(p).ok(),
                 None => plugin = None,
-            }
+            };
 
             let image = match bconfig.icon {
                 Some(t) => Rstreamdeck_lib::load_icon(t),
@@ -99,15 +93,33 @@ impl Deck {
             brightness: config.deck.brightness.unwrap_or(100 as u8),
             buttons: buttons,
             manager: man,
+            last_state: Vec::new(),
         })
     }
 
     pub fn update(&mut self) {
+        let mut status: Vec<ButtonStatus> = Vec::new();
+        enum ButtonStatus {
+            Pressed,
+            Unchanged,
+            Depressed,
+        };
+
+        let state = self.deck.read_buttons(None).unwrap_or(vec![0; 64]);
+
+        //this determines which buttons have been pressed since the last interation of the loop.
+        //this is needed so a command is not triggerd 100 time per second
+        for i in state.iter().zip(&mut self.last_state) {
+            let (is, was) = i;
+        }
+
+        self.last_state = state;
+
         for i in (0..self.deck.kind().keys())
             .zip(&mut self.buttons)
-            .zip(self.deck.read_buttons(None).unwrap_or(vec![0; 64]))
+            .zip(status)
         {
-            let ((index, button), status) = i;
+            let ((index, button), is_pressed) = i;
 
             self.deck.set_brightness(self.brightness);
 
@@ -128,7 +140,11 @@ impl Deck {
                 },
             };
 
-            button.pressed();
+            match is_pressed {
+                ButtonStatus::Pressed => button.pressed(),
+                ButtonStatus::Depressed => button.depressed(),
+                _ => {}
+            }
         }
     }
 }
@@ -165,6 +181,8 @@ impl Button {
             }
         };
 
+        println!("behavior is {:?}", behavior);
+
         Self {
             text: text,
             rgb: rgb,
@@ -183,19 +201,29 @@ impl Button {
     }
 
     fn asset_call(&mut self) {
-        let proto = self.behavior.unwrap_or(return);
+        let proto = self.behavior.as_ref().unwrap_or(return);
 
         self.text = Some(proto.get_text()).unwrap_or(self.text);
         self.rgb = Some(proto.get_rgb()).unwrap_or(self.rgb);
         self.image = Some(proto.get_image()).unwrap_or(self.image)
     }
 
-    fn pressed(&self) {
-        self.behavior.unwrap_or(return).pressed();
+    fn pressed(&mut self) {
+        self.behavior
+            .as_mut()
+            .unwrap_or({
+                eprintln!("behavior noexistent");
+                return;
+            })
+            .pressed();
+    }
+
+    fn depressed(&mut self) {
+        unimplemented!()
     }
 }
 
-pub trait Protocol {
+pub trait Protocol: Debug {
     fn pressed(&mut self);
     fn get_image(&self) -> Option<DynamicImage> {
         None

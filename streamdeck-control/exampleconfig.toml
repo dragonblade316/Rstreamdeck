@@ -1,6 +1,10 @@
 [deck]
 brightness = 100
 
-[b8]
+[b1]
+rgb = [200, 200, 0]
+
+[b2]
 icon = "/home/dragonblade316/Pictures/fighter.png"
-command = "kitty"
+button = "command"
+opts = { command = "kitty" }

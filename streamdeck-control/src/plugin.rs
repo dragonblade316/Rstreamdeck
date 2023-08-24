@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
+use std::path::PathBuf;
 use std::process::Command;
 use Rstreamdeck_lib::ClientToServerMessage;
 //use
@@ -60,8 +61,12 @@ pub struct PluginManager {
 
 impl PluginManager {
     pub fn new() -> Result<Self> {
-        let socket_path = xdg::BaseDirectories::new()?.place_runtime_file("plugin_socket")?;
-        let listener = UnixListener::bind(socket_path)?;
+        let socket_path = xdg::BaseDirectories::new()?
+            .place_runtime_file("plugin_socket")
+            .expect("could not place file");
+
+        let socket_path = PathBuf::from("/tmp/rdeck.sock");
+        let listener = UnixListener::bind(socket_path).expect("socket not bound");
 
         Ok(Self {
             listener: listener,
@@ -86,8 +91,8 @@ impl PluginManager {
 
         match plugin_descriptor {
             Rstreamdeck_lib::ClientToServerMessage::INITIALREPORT(i) => {
-                let plugin = Plugin::new(plugin_socket, i);
-                self.plugins.insert(i.name, plugin);
+                let plugin = Plugin::new(plugin_socket, i.clone());
+                self.plugins.insert(i.name.clone(), plugin);
 
                 //the unwrap should be fine here
                 return Ok(&self.plugins.get(&i.name).unwrap());
@@ -119,5 +124,11 @@ impl PluginManager {
                 Err(e) => {}
             }
         }
+    }
+}
+
+impl Drop for PluginManager {
+    fn drop(&mut self) {
+        std::fs::remove_file("tmp/rdeck.sock");
     }
 }
