@@ -6,6 +6,7 @@ mod plugin;
 use std::{
     clone,
     os::unix::thread,
+    println,
     process::Command,
     thread::{spawn, Thread},
 };
@@ -28,9 +29,11 @@ fn main() {
     let args = Args::parse();
 
     let mut deck = load_deck_from_config(args.config).unwrap();
+    println!("deck works");
 
     //this might al be moved to deck
     loop {
+        println!("update");
         deck.update()
     }
 }

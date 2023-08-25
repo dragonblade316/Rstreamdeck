@@ -8,16 +8,16 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.71"
+anyhow.workspace = true
 hidapi = "1.2"
 rusttype = "0.9.2"
 clap = { version = "4.3.5", features = ["derive"] }
-image = "0.24.6"
-serde = { version = "1.0.164", features = ["derive"] }
+image.workspace = true
+serde.workspace = true
 streamdeck = "0.7.0"
 toml = "0.7.4"
 xdg = "2.5.0"
-serde_json = "1.0.104"
+serde_json.workspace = true
 
 Rstreamdeck-lib = { path = "../Rstreamdeck-lib/" }
 

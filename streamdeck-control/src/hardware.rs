@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::eprintln;
 use std::fmt::Debug;
 use std::println;
+use std::time::Duration;
 use std::unimplemented;
 
 use crate::plugin;
@@ -88,6 +89,8 @@ impl Deck {
             ));
         }
 
+        println!("deck creation successful");
+
         Ok(Deck {
             deck,
             brightness: config.deck.brightness.unwrap_or(100 as u8),
@@ -99,21 +102,35 @@ impl Deck {
 
     pub fn update(&mut self) {
         let mut status: Vec<ButtonStatus> = Vec::new();
+        #[derive(Debug)]
         enum ButtonStatus {
             Pressed,
             Unchanged,
             Depressed,
         };
 
-        let state = self.deck.read_buttons(None).unwrap_or(vec![0; 64]);
+        let state = self
+            .deck
+            .read_buttons(Some(Duration::new(1, 0)))
+            .unwrap_or(vec![0; 64]);
 
         //this determines which buttons have been pressed since the last interation of the loop.
         //this is needed so a command is not triggerd 100 time per second
+        //Im now realizing this could be totally useless
         for i in state.iter().zip(&mut self.last_state) {
             let (is, was) = i;
-        }
 
+            if is > was {
+                status.push(ButtonStatus::Pressed)
+            } else if is < was {
+                status.push(ButtonStatus::Depressed)
+            } else {
+                status.push(ButtonStatus::Unchanged)
+            }
+        }
         self.last_state = state;
+
+        println!("number of keys is {}", self.deck.kind().keys());
 
         for i in (0..self.deck.kind().keys())
             .zip(&mut self.buttons)
@@ -121,25 +138,34 @@ impl Deck {
         {
             let ((index, button), is_pressed) = i;
 
+            println!("index is {}", index);
             self.deck.set_brightness(self.brightness);
 
             match &button.image {
-                Some(im) => self.deck.set_button_image(index, im.clone()),
+                Some(im) => self
+                    .deck
+                    .set_button_image(index, im.clone())
+                    .expect("could nto set image"),
                 None => match button.rgb {
-                    Some(rgb) => self.deck.set_button_rgb(
-                        index,
-                        &Colour {
-                            r: rgb[0],
-                            g: rgb[1],
-                            b: rgb[2],
-                        },
-                    ),
+                    Some(rgb) => self
+                        .deck
+                        .set_button_rgb(
+                            index,
+                            &Colour {
+                                r: rgb[0],
+                                g: rgb[1],
+                                b: rgb[2],
+                            },
+                        )
+                        .expect("could not set rgb"),
                     None => self
                         .deck
-                        .set_button_rgb(index, &Colour { r: 0, g: 0, b: 0 }),
+                        .set_button_rgb(index, &Colour { r: 0, g: 0, b: 0 })
+                        .expect("could not set black"),
                 },
             };
 
+            println!("{:?}", is_pressed);
             match is_pressed {
                 ButtonStatus::Pressed => button.pressed(),
                 ButtonStatus::Depressed => button.depressed(),
@@ -181,8 +207,6 @@ impl Button {
             }
         };
 
-        println!("behavior is {:?}", behavior);
-
         Self {
             text: text,
             rgb: rgb,
@@ -219,12 +243,21 @@ impl Button {
     }
 
     fn depressed(&mut self) {
-        unimplemented!()
+        self.behavior
+            .as_mut()
+            .unwrap_or({
+                eprintln!("behavior nonexistent");
+                return;
+            })
+            .depressed()
     }
 }
 
 pub trait Protocol: Debug {
     fn pressed(&mut self);
+    fn depressed(&mut self) {
+        return;
+    }
     fn get_image(&self) -> Option<DynamicImage> {
         None
     }

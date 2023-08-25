@@ -6,5 +6,6 @@ rgb = [200, 200, 0]
 
 [b2]
 icon = "/home/dragonblade316/Pictures/fighter.png"
+rgb = [200, 0, 0]
 button = "command"
 opts = { command = "kitty" }
