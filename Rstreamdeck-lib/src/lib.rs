@@ -1,21 +1,25 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::unimplemented;
 use std::{
     ffi::{OsStr, OsString},
     path::PathBuf,
 };
 
-extern crate abi_stable;
 extern crate image;
 extern crate rusttype;
 
 // use abi_stable::{library::RootModule, declare_root_module_statics, package_version_strings};
 use image::imageops;
 
+//TODO: every request will have a uuid the responce must have the same uuid in order to allow for
+//multiple simltainius requests.
+
 ///requests that are sent from the controller to the pluginc
 #[derive(Serialize, Deserialize, Clone)]
 pub enum ServerToClientMessage {
     PRESSED(u8),
+    DEPRESSED(u8),
     ASSETCALL(u8),
     NEWBUTTON(NewButton),
     ERROR,
@@ -24,7 +28,7 @@ pub enum ServerToClientMessage {
 #[derive(Serialize, Deserialize, Clone)]
 pub enum ClientToServerMessage {
     INITIALREPORT(InitialReport),
-    ASSETREPORT(AssetReport),
+    BUTTONREPORT(ButtonReport),
     ERROR,
 }
 
@@ -38,28 +42,56 @@ pub struct InitialReport {
     pub name: String,
     pub desc: Option<String>,
     pub author: Option<String>,
-    pub buttons: Vec<String>,
+    pub buttons: Vec<ButtonDesc>,
 }
 
 ///will be sent from the controller to the plugin to register a new button
 #[derive(Serialize, Deserialize, Clone)]
 pub struct NewButton {
-    id: u8,
-    position: [u8; 2],
+    pub id: u8,
+    pub button: Option<String>,
+    pub position: [u8; 2],
+    pub opts: Option<HashMap<String, String>>,
 }
 
 ///reports data such as the icon
 #[derive(Serialize, Deserialize, Clone)]
-pub struct AssetReport {
-    id: u8,
-    text: String,
-    rgb: [u8; 3],
+pub struct ButtonReport {
+    pub id: u8,
+    pub text: Option<String>,
+    pub rgb: Option<[u8; 3]>,
     //will be encoded in base64 for easier transport over json.
-    image: String,
+    pub image: Option<String>,
+}
+
+///A descriptor for a button (Obviously)
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ButtonDesc {
+    name: String,
+    desc: Option<String>,
+    opts: Option<String>,
+}
+
+use std::io::{Read, Write};
+///reads data from a socket to a string. this is ment to standardize the reading and writing of
+///json between the plugin library and the application.
+///technically this works on anything that implments the Read trait
+pub fn read_string_from_rdeck_socket<T: Read>(socket: &mut T) -> anyhow::Result<String> {
+    let mut len_buf: [u8; 8] = [0; 8];
+    socket.read_exact(&mut len_buf);
+    let mut buf: Vec<u8> = Vec::new();
+    buf.resize(u64::from_le_bytes(len_buf) as usize, 0);
+    socket.read_exact(&mut buf);
+    Ok(String::from_utf8(buf).unwrap())
+}
+pub fn write_string_to_rdeck_socket<T: Write>(socket: &mut T, json: String) {
+    let buf = json.into_bytes();
+    let _ = socket.write(&buf);
 }
 
 //default icon loader. will support svg, png, jpeg, and whatever else is supported by the image
 //library
+//INFO: this should probably be a result since the image could either not be present or unreadable
 pub fn load_icon(path: PathBuf) -> Option<image::DynamicImage> {
     let svg = &OsString::from("svg");
 

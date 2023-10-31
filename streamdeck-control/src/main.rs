@@ -33,7 +33,7 @@ fn main() {
 
     //this might al be moved to deck
     loop {
-        println!("update");
+        //println!("update");
         deck.update()
     }
 }

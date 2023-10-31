@@ -3,8 +3,8 @@ use std::eprintln;
 use std::fmt::Debug;
 use std::println;
 use std::time::Duration;
-use std::unimplemented;
 
+use crate::default_buttons::new_button_protocol;
 use crate::plugin;
 use anyhow::Result;
 use image::DynamicImage;
@@ -16,8 +16,10 @@ use crate::plugin::PluginManager;
 //#[derive(Debug)]
 pub struct Deck {
     deck: StreamDeck,
-    brightness: u8,
-    buttons: Vec<Button>,
+    // brightness: u8,
+    // buttons: Vec<Button>,
+    profiles: HashMap<String, Profile>,
+    current_profile: String,
     manager: PluginManager,
     last_state: Vec<u8>,
 }
@@ -44,7 +46,7 @@ impl Deck {
                     .expect("could not connect to streamdeck");
             }
             None => panic!("no streamdeck detected"),
-        }
+        };
 
         let button_vec = vec![
             config.b1, config.b2, config.b3, config.b4, config.b5, config.b6, config.b7, config.b8,
@@ -67,11 +69,15 @@ impl Deck {
 
             let plugin: Option<&plugin::Plugin>;
 
-            //TODO: I will need to improve the error handleing here in case something can be fixed
-            //or done here
-            match bconfig.plugin {
-                Some(p) => plugin = man.load_plugin(p).ok(),
-                None => plugin = None,
+            let button = match bconfig.plugin {
+                Some(p) => Some(
+                    man.get_button(index, p, bconfig.button, bconfig.opts)
+                        .unwrap(),
+                ),
+                None => match bconfig.button {
+                    Some(b) => new_button_protocol(b, bconfig.opts),
+                    None => None,
+                },
             };
 
             let image = match bconfig.icon {
@@ -79,18 +85,14 @@ impl Deck {
                 None => None,
             };
 
-            buttons.push(Button::new(
-                bconfig.text,
-                bconfig.rgb,
-                image,
-                bconfig.button,
-                bconfig.opts,
-                plugin,
-            ));
+            buttons.push(Button::new(bconfig.text, bconfig.rgb, image, button));
         }
 
         println!("deck creation successful");
 
+        man.lock();
+
+        //TODO: switch to profiles 
         Ok(Deck {
             deck,
             brightness: config.deck.brightness.unwrap_or(100 as u8),
@@ -100,6 +102,10 @@ impl Deck {
         })
     }
 
+    fn change_profile(&mut self, profile: String) {
+
+    }
+
     pub fn update(&mut self) {
         let mut status: Vec<ButtonStatus> = Vec::new();
         #[derive(Debug)]
@@ -107,7 +113,7 @@ impl Deck {
             Pressed,
             Unchanged,
             Depressed,
-        };
+        }
 
         let state = self
             .deck
@@ -121,7 +127,8 @@ impl Deck {
             let (is, was) = i;
 
             if is > was {
-                status.push(ButtonStatus::Pressed)
+                status.push(ButtonStatus::Pressed);
+                println!("pressed")
             } else if is < was {
                 status.push(ButtonStatus::Depressed)
             } else {
@@ -130,15 +137,12 @@ impl Deck {
         }
         self.last_state = state;
 
-        println!("number of keys is {}", self.deck.kind().keys());
-
         for i in (0..self.deck.kind().keys())
             .zip(&mut self.buttons)
             .zip(status)
         {
             let ((index, button), is_pressed) = i;
 
-            println!("index is {}", index);
             self.deck.set_brightness(self.brightness);
 
             match &button.image {
@@ -165,7 +169,6 @@ impl Deck {
                 },
             };
 
-            println!("{:?}", is_pressed);
             match is_pressed {
                 ButtonStatus::Pressed => button.pressed(),
                 ButtonStatus::Depressed => button.depressed(),
@@ -175,6 +178,12 @@ impl Deck {
     }
 }
 
+pub struct Profile {
+    brightness: u8,
+    buttons: Vec<Button>,
+}
+
+///This is the stuct which is loaded into profiles to make interacting with behavior easier
 //#[derive(Debug)]
 pub struct Button {
     text: Option<String>,
@@ -189,24 +198,8 @@ impl Button {
         text: Option<String>,
         rgb: Option<[u8; 3]>,
         image: Option<DynamicImage>,
-        button: Option<String>,
-        opts: Option<HashMap<String, String>>,
-        plugin: Option<&crate::plugin::Plugin>,
+        behavior: Option<Box<dyn Protocol>>,
     ) -> Self {
-        let behavior = match plugin {
-            Some(p) => {
-                unimplemented!()
-            }
-            None => {
-                use crate::default_buttons::new_button_protocol;
-
-                match button {
-                    Some(i) => new_button_protocol(i, opts),
-                    None => None,
-                }
-            }
-        };
-
         Self {
             text: text,
             rgb: rgb,
@@ -233,23 +226,17 @@ impl Button {
     }
 
     fn pressed(&mut self) {
-        self.behavior
-            .as_mut()
-            .unwrap_or({
-                eprintln!("behavior noexistent");
-                return;
-            })
-            .pressed();
+        match self.behavior.as_mut() {
+            Some(b) => b.pressed(),
+            None => return,
+        }
     }
 
     fn depressed(&mut self) {
-        self.behavior
-            .as_mut()
-            .unwrap_or({
-                eprintln!("behavior nonexistent");
-                return;
-            })
-            .depressed()
+        match self.behavior.as_mut() {
+            Some(b) => b.depressed(),
+            None => return,
+        }
     }
 }
 

@@ -9,5 +9,6 @@ in nixpkgs.mkShell {
     rust-bin.stable.latest.default
     rust-analyzer
     lldb
+    protobuf
   ];
 }

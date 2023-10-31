@@ -11,13 +11,14 @@ edition = "2021"
 anyhow.workspace = true
 hidapi = "1.2"
 rusttype = "0.9.2"
-clap = { version = "4.3.5", features = ["derive"] }
+clap.workspace = true
 image.workspace = true
 serde.workspace = true
 streamdeck = "0.7.0"
 toml = "0.7.4"
 xdg = "2.5.0"
 serde_json.workspace = true
+base64.workspace = true
 
 Rstreamdeck-lib = { path = "../Rstreamdeck-lib/" }
 

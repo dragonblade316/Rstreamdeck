@@ -7,3 +7,9 @@ edition = "2021"
 
 [dependencies]
 Rstreamdeck-lib = { path = "../Rstreamdeck-lib/" }
+anyhow.workspace = true
+image.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+base64.workspace = true
+clap.workspace = true

@@ -38,13 +38,11 @@ impl CommandButton {
 impl Protocol for CommandButton {
     fn pressed(&mut self) {
         println!("command triggerd");
-        self.command.spawn();
+        self.command.spawn().unwrap();
     }
 }
 
-struct MultimediaButton {}
-
-struct VolumeButton {}
+struct ChangeProfileButton {}
 
 #[derive(Debug)]
 struct not_used;
