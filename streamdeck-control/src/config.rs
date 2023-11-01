@@ -15,7 +15,7 @@ use serde::Deserialize;
 pub fn load_deck_from_config(path: Option<String>) -> Result<Deck> {
     if let Some(path) = path {
         let path = PathBuf::from(path);
-        return Deck::new(stdStreamdeckToml::new(path));
+        return Deck::new(StreamdeckProfileToml::new(path));
     }
 
     auto_load_config()
@@ -34,7 +34,7 @@ fn auto_load_config() -> Result<Deck> {
 
     match dirs.find_config_file(path) {
         //TODO: add error handling to deckstate new
-        Some(file) => Deck::new(stdStreamdeckToml::new(file)),
+        Some(file) => Deck::new(StreamdeckProfileToml::new(file)),
         None => {
             let new_path = dirs
                 .place_config_file(path)
@@ -44,15 +44,11 @@ fn auto_load_config() -> Result<Deck> {
             new_file.write_all(include_bytes!("../exampleconfig.toml"));
             drop(new_file);
 
-            Deck::new(stdStreamdeckToml::new(new_path))
+            Deck::new(StreamdeckProfileToml::new(new_path))
         }
     }
 }
 
-#[cfg(target_os = "windows")]
-fn auto_load_config() -> Result<Deckstate> {
-    unimplemented!();
-}
 
 //#[derive(Debug)]
 
@@ -75,15 +71,10 @@ pub struct ButtonConfig {
     pub plugin: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
-pub struct DeckConfig {
-    pub brightness: Option<u8>,
-}
-
 //I am sorry to future me if this needs to be redone. update: I have as.insert(i.Plugin.new(plugin_socket, plugin_descriptor));lready had to redo it once
 #[derive(Debug, Deserialize)]
-pub struct stdStreamdeckToml {
-    pub deck: DeckConfig,
+pub struct StreamdeckProfileToml {
+    pub brightness: Option<u8>,
 
     pub b1: Option<ButtonConfig>,
     pub b2: Option<ButtonConfig>,
@@ -102,13 +93,58 @@ pub struct stdStreamdeckToml {
     pub b15: Option<ButtonConfig>,
 }
 
-impl stdStreamdeckToml {
-    fn new(path: PathBuf) -> stdStreamdeckToml {
+impl StreamdeckProfileToml {
+    fn new(path: PathBuf) -> StreamdeckProfileToml {
         let mut file = File::open(path).unwrap();
         let mut content = String::new();
 
         file.read_to_string(&mut content).unwrap();
 
         toml::from_str(content.as_str()).unwrap()
+    }
+}
+
+///Mainly a logic container to the configuration loading logic
+pub struct StreamdeckConfig {
+    pub profiles: HashMap<String, StreamdeckProfileToml>,
+}
+
+impl StreamdeckConfig {
+    pub fn new(path: Option<PathBuf>) -> Self {
+        match path {
+            Some(p) => {
+                match p.is_dir() {
+                    true => {},
+                    false => {},
+                }
+            }
+            None => todo!()
+        }
+    }
+
+    fn load_dir(path: Pathbuf) -> Self {
+        let mut map: HashMap<String, StreamdeckProfileToml> = HashMap::new;
+
+        //default path
+        let dpath = path.clone();
+        dpath.push("default.toml");
+        map.insert(format!("default"), StreamdeckProfileToml::new(dpath));
+
+        //profile path
+        let ppath = path.clone();
+        ppath.push("plugins");
+
+        match ppath.exists() && ppath.is_dir() {
+            true => {
+                for i in std::fs::read_dir(ppath)? {
+                    unimplemented!();
+                }
+            },
+            _ => {},
+        }
+
+        Self {
+            profiles: map
+        }
     }
 }

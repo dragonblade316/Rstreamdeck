@@ -11,6 +11,7 @@ pub fn new_button_protocol(
         _ => None,
     }
 }
+
 #[derive(Debug)]
 struct CommandButton {
     command: Command,

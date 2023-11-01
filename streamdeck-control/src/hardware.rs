@@ -11,7 +11,7 @@ use image::DynamicImage;
 use streamdeck::Colour;
 use streamdeck::StreamDeck;
 
-use crate::config::stdStreamdeckToml;
+use crate::config::StreamdeckProfileToml;
 use crate::plugin::PluginManager;
 //#[derive(Debug)]
 pub struct Deck {
@@ -25,7 +25,7 @@ pub struct Deck {
 }
 
 impl Deck {
-    pub fn new(config: stdStreamdeckToml) -> Result<Deck> {
+    pub fn new(config: StreamdeckProfileToml) -> Result<Deck> {
         let mut man = PluginManager::new().expect("failed to start plugin manager");
 
         let vendorid = 0x0FD9;
