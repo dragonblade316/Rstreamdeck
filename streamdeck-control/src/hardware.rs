@@ -3,6 +3,7 @@ use std::eprintln;
 use std::fmt::Debug;
 use std::println;
 use std::time::Duration;
+use rusttype::Font::*;
 
 use crate::default_buttons::new_button_protocol;
 use crate::plugin;
@@ -11,13 +12,14 @@ use image::DynamicImage;
 use streamdeck::Colour;
 use streamdeck::StreamDeck;
 
-use crate::config::StreamdeckProfileToml;
+use crate::config::{StreamdeckProfileToml, StreamdeckConfig};
 use crate::plugin::PluginManager;
 //#[derive(Debug)]
 pub struct Deck {
     deck: StreamDeck,
     // brightness: u8,
     // buttons: Vec<Button>,
+
     profiles: HashMap<String, Profile>,
     current_profile: String,
     manager: PluginManager,
@@ -25,7 +27,7 @@ pub struct Deck {
 }
 
 impl Deck {
-    pub fn new(config: StreamdeckProfileToml) -> Result<Deck> {
+    pub fn new(mut config: StreamdeckConfig) -> Result<Deck> {
         let mut man = PluginManager::new().expect("failed to start plugin manager");
 
         let vendorid = 0x0FD9;
@@ -47,64 +49,95 @@ impl Deck {
             }
             None => panic!("no streamdeck detected"),
         };
+        
 
-        let button_vec = vec![
-            config.b1, config.b2, config.b3, config.b4, config.b5, config.b6, config.b7, config.b8,
-            config.b9, config.b10, config.b11, config.b12, config.b13, config.b14, config.b15,
-        ];
+        let mut profiles: HashMap<String, Profile> = HashMap::new();
 
-        let mut buttons: Vec<crate::hardware::Button> = Vec::new();
+        //The reason drain is used here is because it effectively uses HashMap::remove() which
+        //returns an the actual objects instead of references that HashMap::get() returns. This is
+        //fine because config.profiles is consumed here and not used further. this could be an
+        //issue though 
+        for i in config.profiles.drain() {
+            let (name, profile) = i;
 
-        for i in (0..15).into_iter().zip(button_vec) {
-            let (index, temp) = i;
+                
+            let button_vec = vec![
+                profile.b1, profile.b2, profile.b3, profile.b4, profile.b5, profile.b6, profile.b7, profile.b8,
+                profile.b9, profile.b10, profile.b11, profile.b12, profile.b13, profile.b14, profile.b15,
+            ];
 
-            let bconfig = match temp {
-                Some(con) => con,
-                None => {
-                    buttons.push(Button::empty());
-                    eprintln!("button missing");
-                    continue;
-                }
-            };
+            let mut buttons: Vec<crate::hardware::Button> = Vec::new();
 
-            let plugin: Option<&plugin::Plugin>;
+            for i in (0..15).into_iter().zip(button_vec) {
+                let (index, temp) = i;
 
-            let button = match bconfig.plugin {
-                Some(p) => Some(
-                    man.get_button(index, p, bconfig.button, bconfig.opts)
-                        .unwrap(),
-                ),
-                None => match bconfig.button {
-                    Some(b) => new_button_protocol(b, bconfig.opts),
+                let bconfig = match temp {
+                    Some(con) => con,
+                    None => {
+                        buttons.push(Button::empty());
+                        eprintln!("button missing");
+                        continue;
+                    }
+                };
+
+                let plugin: Option<&plugin::Plugin>;
+
+                let button = match bconfig.plugin {
+                    Some(p) => Some(
+                        man.get_button(index, p, bconfig.button, bconfig.opts)
+                            .unwrap(),
+                    ),
+                    None => match bconfig.button {
+                        Some(b) => new_button_protocol(b, bconfig.opts),
+                        None => None,
+                    },
+                };
+
+                let image = match bconfig.icon {
+                    Some(t) => Rstreamdeck_lib::load_icon(t),
                     None => None,
-                },
-            };
+                };
 
-            let image = match bconfig.icon {
-                Some(t) => Rstreamdeck_lib::load_icon(t),
-                None => None,
-            };
+                buttons.push(Button::new(bconfig.text, bconfig.rgb, image, button));
+            }
 
-            buttons.push(Button::new(bconfig.text, bconfig.rgb, image, button));
+            profiles.insert(/*I can not beleve I am setting I am using to_string() on &string*/ name.to_string(), Profile {
+                brightness: profile.brightness.unwrap_or(100),
+                buttons,
+            });
         }
 
+
         println!("deck creation successful");
+
 
         man.lock();
 
         //TODO: switch to profiles 
         Ok(Deck {
             deck,
-            brightness: config.deck.brightness.unwrap_or(100 as u8),
-            buttons: buttons,
+            profiles,
+            current_profile: format!("default"),
             manager: man,
             last_state: Vec::new(),
         })
     }
 
     fn change_profile(&mut self, profile: String) {
-
+        if self.profiles.contains_key(&profile) {
+            self.current_profile = profile;
+        }
     }
+
+    ///a helper function for getting the current profile
+    fn get_current_profile(&self) -> &Profile {
+        self.profiles.get(&self.current_profile).unwrap_or(self.profiles.get(&format!("default")).expect("default profile broken. Pls send help"))
+    }
+
+    // ///a helper function for getting the current profile
+    // fn get_current_profile_mut(&mut self) -> &mut Profile {
+    //     self.profiles.get_mut(&self.current_profile).unwrap_or(self.profiles.get_mut(&format!("default")).expect("default profile broken. Pls send help"))
+    // }
 
     pub fn update(&mut self) {
         let mut status: Vec<ButtonStatus> = Vec::new();
@@ -137,14 +170,41 @@ impl Deck {
         }
         self.last_state = state;
 
+        //SCREW THE STUPID BORROW CHECKER
+        // let profile = self.get_current_profile_mut();
+       
+        //this is what I do to satisfy the borrow checker
+        let profile_entries = self.profiles.keys().map(|x| x.clone()).collect::<Vec<String>>().clone();
+
+        //I dont entirely know why this works instead of the above but it does not throw errors so
+        //I'm not touching it
+        let profile = self.profiles.get_mut(&self.current_profile).unwrap();
+
         for i in (0..self.deck.kind().keys())
-            .zip(&mut self.buttons)
+            .zip(&mut profile.buttons)
             .zip(status)
         {
             let ((index, button), is_pressed) = i;
 
-            self.deck.set_brightness(self.brightness);
+            self.deck.set_brightness(profile.brightness.clone());
 
+            //yes I see I'm using a match patteren for only one thing. Deal with it. 
+            match button.update() { 
+                Some(i) => match i {
+                    Instruction::ChangeProfile(p) => {
+                        //and I have no idea why this works
+                        if profile_entries.contains(&&p) {
+                            self.current_profile = p;
+                        }
+                    },
+                    //in case I ever miss something
+                    _ => {}
+                },
+                _ => {}
+            }
+
+            //I'm now realizing that if transparent images are supported this code would not do as
+            //intended. Eh I will deal with it if it becomes a problem
             match &button.image {
                 Some(im) => self
                     .deck
@@ -184,12 +244,11 @@ pub struct Profile {
 }
 
 ///This is the stuct which is loaded into profiles to make interacting with behavior easier
-//#[derive(Debug)]
 pub struct Button {
     text: Option<String>,
     rgb: Option<[u8; 3]>,
     image: Option<DynamicImage>,
-    // font:
+    // font: Option<rusttype::Font>,
     behavior: Option<Box<dyn Protocol>>,
 }
 
@@ -204,6 +263,7 @@ impl Button {
             text: text,
             rgb: rgb,
             image: image,
+            // font: Some(rusttype::Font::try_from_bytes(include_bytes!()).unwrap()),
             behavior: behavior,
         }
     }
@@ -213,16 +273,19 @@ impl Button {
             text: None,
             rgb: None,
             image: None,
+            // font: None,
             behavior: None,
         }
     }
 
-    fn asset_call(&mut self) {
-        let proto = self.behavior.as_ref().unwrap_or(return);
+    fn update(&mut self) -> Option<Instruction> {
+        let proto = self.behavior.as_ref().unwrap_or(return None);
 
         self.text = Some(proto.get_text()).unwrap_or(self.text);
         self.rgb = Some(proto.get_rgb()).unwrap_or(self.rgb);
-        self.image = Some(proto.get_image()).unwrap_or(self.image)
+        self.image = Some(proto.get_image()).unwrap_or(self.image);
+        
+        proto.get_instruction_request()
     }
 
     fn pressed(&mut self) {
@@ -240,6 +303,11 @@ impl Button {
     }
 }
 
+///This is for instructions to the streamdeck that the plugins cant handle such as profile changes
+enum Instruction {
+    ChangeProfile(String),
+}
+
 pub trait Protocol: Debug {
     fn pressed(&mut self);
     fn depressed(&mut self) {
@@ -254,5 +322,9 @@ pub trait Protocol: Debug {
     fn get_rgb(&self) -> Option<[u8; 3]> {
         None
     }
+    //TODO: for goodness sakes figure out how to implment this
     // fn get_font();
+    fn get_instruction_request(&self) -> Option<Instruction> {
+        None
+    }
 }

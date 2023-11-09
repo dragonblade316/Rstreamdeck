@@ -13,7 +13,7 @@ extern crate rusttype;
 use image::imageops;
 
 //TODO: every request will have a uuid the responce must have the same uuid in order to allow for
-//multiple simltainius requests.
+//multiple simltainius requests. Hello I'm looking at this and realizing it does not matter.
 
 ///requests that are sent from the controller to the pluginc
 #[derive(Serialize, Deserialize, Clone)]
@@ -43,6 +43,7 @@ pub struct InitialReport {
     pub desc: Option<String>,
     pub author: Option<String>,
     pub buttons: Vec<ButtonDesc>,
+    pub profiles: HashMap<String, String>,
 }
 
 ///will be sent from the controller to the plugin to register a new button
@@ -53,6 +54,7 @@ pub struct NewButton {
     pub position: [u8; 2],
     pub opts: Option<HashMap<String, String>>,
 }
+
 
 ///reports data such as the icon
 #[derive(Serialize, Deserialize, Clone)]

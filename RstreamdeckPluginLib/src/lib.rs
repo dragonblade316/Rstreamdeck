@@ -20,6 +20,7 @@ where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u
     author: Option<String>,
 
     buttons: Vec<ButtonDesc>,
+    profiles: HashMap<String, String>,
 
     new_button_function: NBF,
 
@@ -39,6 +40,7 @@ where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u
         author: Option<String>,
 
         buttons: Vec<ButtonDesc>,
+        profiles: HashMap<String, String>, 
 
         new_button_function: NBF,
 
@@ -54,6 +56,7 @@ where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u
             desc,
             author,
             buttons,
+            profiles,
             new_button_function,
             pressed_function,
             depressed_function,
@@ -82,6 +85,8 @@ where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u
             desc: self.desc.clone(),
             author: self.author.clone(),
             buttons: self.buttons.clone(),
+            profiles: self.profiles.clone(),
+
         }));
     }
     //

@@ -12,29 +12,32 @@ use anyhow::{Ok, Result};
 use image::imageops;
 use serde::Deserialize;
 
+
+
+//TODO: rewite this
 pub fn load_deck_from_config(path: Option<String>) -> Result<Deck> {
     if let Some(path) = path {
         let path = PathBuf::from(path);
-        return Deck::new(StreamdeckProfileToml::new(path));
+        return Deck::new(StreamdeckConfig::new(path).expect("failed to load config"));
     }
 
     auto_load_config()
 }
 
 //will also create config if it does not exist
-//
+//TODO: also rewrite this
 #[cfg(target_os = "linux")]
 fn auto_load_config() -> Result<Deck> {
     use std::io::Write;
 
-    let path = "config.toml";
+    let path = "default.toml";
 
     //why is this a struct
     let dirs = xdg::BaseDirectories::with_prefix("rstreamdeck").expect("dirs could not be loaded");
 
     match dirs.find_config_file(path) {
         //TODO: add error handling to deckstate new
-        Some(file) => Deck::new(StreamdeckProfileToml::new(file)),
+        Some(file) => Deck::new(StreamdeckConfig::new(file).expect("failed to load config")),
         None => {
             let new_path = dirs
                 .place_config_file(path)
@@ -44,7 +47,7 @@ fn auto_load_config() -> Result<Deck> {
             new_file.write_all(include_bytes!("../exampleconfig.toml"));
             drop(new_file);
 
-            Deck::new(StreamdeckProfileToml::new(new_path))
+            Deck::new(StreamdeckConfig::new(new_path).expect("failed to load config"))
         }
     }
 }
@@ -110,28 +113,18 @@ pub struct StreamdeckConfig {
 }
 
 impl StreamdeckConfig {
-    pub fn new(path: Option<PathBuf>) -> Self {
-        match path {
-            Some(p) => {
-                match p.is_dir() {
-                    true => {},
-                    false => {},
-                }
-            }
-            None => todo!()
-        }
-    }
 
-    fn load_dir(path: Pathbuf) -> Self {
-        let mut map: HashMap<String, StreamdeckProfileToml> = HashMap::new;
+
+    fn new(path: PathBuf) -> Result<Self> {
+        let mut map: HashMap<String, StreamdeckProfileToml> = HashMap::new();
 
         //default path
-        let dpath = path.clone();
+        let mut dpath = path.clone();
         dpath.push("default.toml");
         map.insert(format!("default"), StreamdeckProfileToml::new(dpath));
 
         //profile path
-        let ppath = path.clone();
+        let mut ppath = path.clone();
         ppath.push("plugins");
 
         match ppath.exists() && ppath.is_dir() {
@@ -143,8 +136,8 @@ impl StreamdeckConfig {
             _ => {},
         }
 
-        Self {
+        Ok(Self {
             profiles: map
-        }
+        })
     }
 }

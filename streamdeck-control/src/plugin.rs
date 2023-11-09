@@ -88,6 +88,8 @@ impl Plugin {
         }))
     }
 
+
+    //TODO: make this multithreaded
     fn update(&mut self) {
         //read from socket
         let json_str = Rstreamdeck_lib::read_string_from_rdeck_socket(&mut self.socket).unwrap();
@@ -215,6 +217,7 @@ impl PluginManager {
             );
         }
 
+        //rewrite this to support custom config dirs (or maybe not)
         let plugins = xdg::BaseDirectories::new()
             .unwrap()
             .find_config_files("plugins");
@@ -299,6 +302,7 @@ impl PluginManager {
     }
 }
 
+//TODO: make this work
 impl Drop for PluginManager {
     fn drop(&mut self) {
         std::fs::remove_file("tmp/rdeck.sock");
