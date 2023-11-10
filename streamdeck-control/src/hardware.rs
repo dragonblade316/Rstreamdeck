@@ -11,7 +11,7 @@ use anyhow::Result;
 use image::DynamicImage;
 use streamdeck::Colour;
 use streamdeck::StreamDeck;
-
+use streamdeck::TextOptions;
 use crate::config::{StreamdeckProfileToml, StreamdeckConfig};
 use crate::plugin::PluginManager;
 //#[derive(Debug)]
@@ -188,6 +188,7 @@ impl Deck {
 
             self.deck.set_brightness(profile.brightness.clone());
 
+            self.manager.update();
             //yes I see I'm using a match patteren for only one thing. Deal with it. 
             match button.update() { 
                 Some(i) => match i {
@@ -228,6 +229,10 @@ impl Deck {
                         .expect("could not set black"),
                 },
             };
+
+            if let Some(text) = &button.text {
+                self.deck.set_button_text(index, &rusttype::Font::try_from_bytes(include_bytes!("../../assets/SpaceMonoNerdFont-Regular.tff")).unwrap(), &streamdeck::TextPosition::Absolute {x: 0, y: 0}, text.as_str(), &TextOptions::new(Colour {r: 255, g: 255, b: 255}, Colour {r: 0, g: 0, b: 0}, rusttype::Scale {x: 1.0, y: 1.0 }, 1.0)).expect("wth is wrong with the font, how is this even posable. If you run into this seek help"); 
+            }
 
             match is_pressed {
                 ButtonStatus::Pressed => button.pressed(),

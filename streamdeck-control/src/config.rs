@@ -3,6 +3,7 @@ use std::{
     ffi::{OsStr, OsString},
     fs::File,
     io::Read,
+    io::Write,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -35,21 +36,25 @@ fn auto_load_config() -> Result<Deck> {
     //why is this a struct
     let dirs = xdg::BaseDirectories::with_prefix("rstreamdeck").expect("dirs could not be loaded");
 
-    match dirs.find_config_file(path) {
-        //TODO: add error handling to deckstate new
-        Some(file) => Deck::new(StreamdeckConfig::new(file).expect("failed to load config")),
-        None => {
-            let new_path = dirs
-                .place_config_file(path)
-                .expect("unable to create config file");
-            let mut new_file = File::create(new_path.clone())?;
+    
 
-            new_file.write_all(include_bytes!("../exampleconfig.toml"));
-            drop(new_file);
-
-            Deck::new(StreamdeckConfig::new(new_path).expect("failed to load config"))
-        }
-    }
+    // match dirs.find_config_file(path) {
+    //     //TODO: add error handling to deckstate new
+    //     Some(file) => Deck::new(StreamdeckConfig::new(file).expect("failed to load config")),
+    //     None => {
+    //         let new_path = dirs
+    //             .place_config_file(path)
+    //             .expect("unable to create config file");
+    //         let mut new_file = File::create(new_path.clone())?;
+    //
+    //         new_file.write_all(include_bytes!("../exampleconfig.toml"));
+    //         drop(new_file);
+    //
+    //         Deck::new(StreamdeckConfig::new(new_path).expect("failed to load config"))
+    //     }
+    // }
+    //
+    Deck::new(StreamdeckConfig::new(dirs.get_config_home())?)
 }
 
 
@@ -98,6 +103,8 @@ pub struct StreamdeckProfileToml {
 
 impl StreamdeckProfileToml {
     fn new(path: PathBuf) -> StreamdeckProfileToml {
+        println!("Attempting to load toml file from {}", path.to_str().unwrap());
+
         let mut file = File::open(path).unwrap();
         let mut content = String::new();
 
@@ -121,6 +128,14 @@ impl StreamdeckConfig {
         //default path
         let mut dpath = path.clone();
         dpath.push("default.toml");
+
+        if dpath.exists() {
+            let mut new_file = File::create(dpath.clone())?;
+
+            new_file.write_all(include_bytes!("../exampleconfig.toml"));
+            drop(new_file);
+        }
+
         map.insert(format!("default"), StreamdeckProfileToml::new(dpath));
 
         //profile path

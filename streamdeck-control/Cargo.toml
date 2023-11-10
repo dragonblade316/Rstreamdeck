@@ -21,6 +21,7 @@ serde_json.workspace = true
 base64.workspace = true
 
 Rstreamdeck-lib = { path = "../Rstreamdeck-lib/" }
+ctrlc = "3.4.1"
 
 [[bin]]
 name = "Rstreamdeck"

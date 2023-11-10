@@ -13,6 +13,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{eprint, todo};
 use Rstreamdeck_lib::{ClientToServerMessage, Error, NewButton, ServerToClientMessage, ButtonDesc};
+use ctrlc;
 
 //use
 ///An interface for communicating with plugins
@@ -105,10 +106,18 @@ impl Plugin {
                 let image = match b.image {
                     Some(im) => {
                         let b64 = base64::engine::general_purpose::STANDARD_NO_PAD;
-                        Some(image::load_from_memory(&b64.decode(im).unwrap()))
+                        Some(image::load_from_memory(&b64.decode(im).unwrap()).expect("somebody did not transcode the image properly"))
                     }
                     None => None,
                 };
+
+                let mut im = button.image.lock().unwrap();
+                let mut rgb = button.rgb.lock().unwrap();
+                let mut text = button.text.lock().unwrap();
+                *im = image;
+                *rgb = b.rgb;
+                *text = b.text;
+
             }
             ClientToServerMessage::ERROR => {}
             _ => {}
@@ -202,6 +211,14 @@ impl PluginManager {
             listener: listener,
             plugins: HashMap::new(),
         };
+        
+        //makes the Drop impl irrelevent.
+        ctrlc::set_handler(|| {
+            std::fs::remove_file("/tmp/rdeck.sock").expect("failed to destroy file");
+            //for some reason setting a handler makes the program not exit on SIGINT. 
+            std::process::exit(0);
+        }).expect("failed to load close handler");
+
 
         man.load_plugin();
 
@@ -299,13 +316,6 @@ impl PluginManager {
 
             plugin.update();
         }
-    }
-}
-
-//TODO: make this work
-impl Drop for PluginManager {
-    fn drop(&mut self) {
-        std::fs::remove_file("tmp/rdeck.sock");
     }
 }
 
