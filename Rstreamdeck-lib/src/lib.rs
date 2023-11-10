@@ -116,16 +116,6 @@ pub fn load_icon(path: PathBuf) -> Option<image::DynamicImage> {
     }
 }
 
-///will load the default Rstreamdeck font. It needs a lifetime in order to prevent what could be a
-///memory leak
-pub fn load_default_font<'a>() -> Font<'a> {
-    
-}
-
-pub fn load_system_font() -> Font<'static> {
-    unimplemented!() 
-}
-
 fn log_info() {
     unimplemented!()
 }

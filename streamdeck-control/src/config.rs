@@ -129,7 +129,9 @@ impl StreamdeckConfig {
         let mut dpath = path.clone();
         dpath.push("default.toml");
 
-        if dpath.exists() {
+        println!("does the config path exist {}", dpath.exists());
+
+        if !dpath.exists() {
             let mut new_file = File::create(dpath.clone())?;
 
             new_file.write_all(include_bytes!("../exampleconfig.toml"));
