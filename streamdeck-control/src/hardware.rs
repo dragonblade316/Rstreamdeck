@@ -231,7 +231,7 @@ impl Deck {
             };
 
             if let Some(text) = &button.text {
-                self.deck.set_button_text(index, &rusttype::Font::try_from_bytes(include_bytes!("../../assets/SpaceMonoNerdFont-Regular.tff")).unwrap(), &streamdeck::TextPosition::Absolute {x: 0, y: 0}, text.as_str(), &TextOptions::new(Colour {r: 255, g: 255, b: 255}, Colour {r: 0, g: 0, b: 0}, rusttype::Scale {x: 1.0, y: 1.0 }, 1.0)).expect("wth is wrong with the font, how is this even posable. If you run into this seek help"); 
+                self.deck.set_button_text(index, &rusttype::Font::try_from_bytes(include_bytes!("../../assets/SpaceMonoNerdFont-Regular.ttf")).unwrap(), &streamdeck::TextPosition::Absolute {x: 0, y: 0}, text.as_str(), &TextOptions::new(Colour {r: 255, g: 255, b: 255}, Colour {r: 0, g: 0, b: 0}, rusttype::Scale {x: 1.0, y: 1.0 }, 1.0)).expect("wth is wrong with the font, how is this even posable. If you run into this seek help"); 
             }
 
             match is_pressed {
