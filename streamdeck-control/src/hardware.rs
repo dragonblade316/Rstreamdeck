@@ -231,8 +231,24 @@ impl Deck {
             };
 
 
+            //this is so over complicated and breaks over 3 charactors but until I have the
+            //modivation to fix it its just going to stay this way
             if let Some(text) = &button.text.clone() {
-                self.deck.set_button_text(index, &rusttype::Font::try_from_bytes(include_bytes!("../../assets/SpaceMonoNerdFont-Regular.ttf")).unwrap(), &streamdeck::TextPosition::Absolute {x: 0, y: 0}, text.as_str(), &TextOptions::new(Colour {r: 255, g: 255, b: 255}, Colour {r: 0, g: 0, b: 0}, rusttype::Scale {x: 1.0, y: 1.0 }, 1.0)).expect("wth is wrong with the font, how is this even posable. If you run into this seek help"); 
+
+                let s = 70/text.len();
+
+                let px = (s as f32 / 3.5 * text.len() as f32) as i32;
+                let py = (s as f32 / 25.0 * (text.len() as f32)) as i32;
+
+                println!("pos is {} {}", px, py);
+
+                let rgb = button.rgb.unwrap_or([0;3]);
+
+                let r = rgb[0];
+                let g = rgb[1];
+                let b = rgb[2];
+
+                self.deck.set_button_text(index, &rusttype::Font::try_from_bytes(include_bytes!("../../assets/SpaceMonoNerdFont-Regular.ttf")).unwrap(), &streamdeck::TextPosition::Absolute {x: px as i32, y: py as i32}, text.as_str(), &TextOptions::new(Colour {r: 255, g: 255, b: 255}, Colour {r: r, g: g, b: b}, rusttype::Scale::uniform((s as f32)), 0.2)).expect("wth is wrong with the font, how is this even posable. If you run into this seek help"); 
 
                 println!("working. text is {}", text);
             }
@@ -243,6 +259,10 @@ impl Deck {
                 _ => {}
             }
         }
+    }
+
+    fn get_text_values(s: String) {
+
     }
 }
 
