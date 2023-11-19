@@ -83,6 +83,7 @@ pub struct ButtonConfig {
 #[derive(Debug, Deserialize)]
 pub struct StreamdeckProfileToml {
     pub brightness: Option<u8>,
+    pub font: Option<PathBuf>,
 
     pub b1: Option<ButtonConfig>,
     pub b2: Option<ButtonConfig>,

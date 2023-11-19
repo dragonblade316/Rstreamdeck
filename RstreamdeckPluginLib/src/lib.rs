@@ -89,7 +89,7 @@ where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u
 
         }));
     }
-    //
+
     // //TODO: sending the image every update could be bad for perfomance. may be able to use Deref
     // //and DerefMut to detect changes
     // fn send_button_report(&mut self, index: u32) {
@@ -160,7 +160,7 @@ where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u
     }
 
     //this will later be moved to another thread. I just need proof of concept
-    pub fn start(&mut self) {
+    pub fn update(&mut self) {
         self.socket.set_read_timeout(Some(Duration::new(1, 0)));
         loop {
             let message = Rstreamdeck_lib::read_string_from_rdeck_socket(&mut self.socket);
@@ -191,5 +191,5 @@ where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u
 
 #[derive(Parser)]
 struct PluginArgs {
-    check: bool,
+    help: bool
 }

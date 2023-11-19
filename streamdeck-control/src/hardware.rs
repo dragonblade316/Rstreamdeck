@@ -14,6 +14,7 @@ use streamdeck::StreamDeck;
 use streamdeck::TextOptions;
 use crate::config::{StreamdeckProfileToml, StreamdeckConfig};
 use crate::plugin::PluginManager;
+use std::fs;
 //#[derive(Debug)]
 pub struct Deck {
     deck: StreamDeck,
@@ -60,6 +61,25 @@ impl Deck {
         for i in config.profiles.drain() {
             let (name, profile) = i;
 
+            fn load_default_font() -> rusttype::Font<'static> {
+                rusttype::Font::try_from_bytes(include_bytes!("../../assets/SpaceMonoNerdFont-Regular.ttf")).unwrap()
+            }
+
+            let font = match profile.font {
+               Some(p) => {
+                   if p.exists() {
+                       match fs::File::open(p) {
+                            Ok(f) => rusttype::Font::try_from_bytes(f.read()),
+                            _ => load_default_font(),
+                       }
+                   } else {
+                       load_default_font()
+                   }
+               },
+               None => load_default_font(),
+
+            };
+
                 
             let button_vec = vec![
                 profile.b1, profile.b2, profile.b3, profile.b4, profile.b5, profile.b6, profile.b7, profile.b8,
@@ -103,6 +123,7 @@ impl Deck {
 
             profiles.insert(/*I can not beleve I am setting I am using to_string() on &string*/ name.to_string(), Profile {
                 brightness: profile.brightness.unwrap_or(100),
+                Some(font), 
                 buttons,
             });
         }
@@ -130,9 +151,6 @@ impl Deck {
     }
 
     ///a helper function for getting the current profile
-    fn get_current_profile(&self) -> &Profile {
-        self.profiles.get(&self.current_profile).unwrap_or(self.profiles.get(&format!("default")).expect("default profile broken. Pls send help"))
-    }
 
     // ///a helper function for getting the current profile
     // fn get_current_profile_mut(&mut self) -> &mut Profile {
@@ -268,6 +286,7 @@ impl Deck {
 
 pub struct Profile {
     brightness: u8,
+    font: rusttype::Font<'static>,
     buttons: Vec<Button>,
 }
 
@@ -315,8 +334,7 @@ impl Button {
         
         proto.get_instruction_request()
     }
-
-    fn pressed(&mut self) {
+fn pressed(&mut self) {
         match self.behavior.as_mut() {
             Some(b) => b.pressed(),
             None => return,

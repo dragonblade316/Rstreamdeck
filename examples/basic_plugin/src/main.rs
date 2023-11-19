@@ -2,12 +2,16 @@ use std::{collections::HashMap, fmt::format, format};
 
 use RstreamdeckPluginLib::PluginAPI;
 
+
+
 struct Button {
 
 }
 
 fn main() {
     let buttons: HashMap<u8, Button> = HashMap::new();
+
+    let descs = Vec<>;
 
     PluginAPI::new(
         format!("example"),
