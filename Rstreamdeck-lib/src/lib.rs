@@ -87,8 +87,11 @@ pub fn read_string_from_rdeck_socket<T: Read>(socket: &mut T) -> anyhow::Result<
     socket.read_exact(&mut buf);
     Ok(String::from_utf8(buf).unwrap())
 }
+
 pub fn write_string_to_rdeck_socket<T: Write>(socket: &mut T, json: String) {
     let buf = json.into_bytes();
+    let size = buf.len();
+    let _ = socket.write(&(size as u64).to_le_bytes());
     let _ = socket.write(&buf);
 }
 
@@ -116,7 +119,7 @@ pub fn load_icon(path: PathBuf) -> Option<image::DynamicImage> {
     }
 }
 
-fn log_info() {
+fn log_info(info: String) {
     unimplemented!()
 }
 

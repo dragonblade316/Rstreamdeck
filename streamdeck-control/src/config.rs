@@ -53,7 +53,9 @@ fn auto_load_config() -> Result<Deck> {
     //         Deck::new(StreamdeckConfig::new(new_path).expect("failed to load config"))
     //     }
     // }
-    //
+    
+    
+
     Deck::new(StreamdeckConfig::new(dirs.get_config_home())?)
 }
 
@@ -104,7 +106,7 @@ pub struct StreamdeckProfileToml {
 
 impl StreamdeckProfileToml {
     fn new(path: PathBuf) -> StreamdeckProfileToml {
-        println!("Attempting to load toml file from {}", path.to_str().unwrap());
+        println!("Attempting to load toml file from {}", path.to_string_lossy());
 
         let mut file = File::open(path).unwrap();
         let mut content = String::new();
@@ -118,6 +120,7 @@ impl StreamdeckProfileToml {
 ///Mainly a logic container to the configuration loading logic
 pub struct StreamdeckConfig {
     pub profiles: HashMap<String, StreamdeckProfileToml>,
+    pub plugin_path: PathBuf,
 }
 
 impl StreamdeckConfig {
@@ -139,23 +142,32 @@ impl StreamdeckConfig {
             drop(new_file);
         }
 
+        println!("default file is {}", dpath.to_str().unwrap());
+
         map.insert(format!("default"), StreamdeckProfileToml::new(dpath));
 
         //profile path
         let mut ppath = path.clone();
-        ppath.push("plugins");
+        ppath.push("profiles");
 
         match ppath.exists() && ppath.is_dir() {
             true => {
                 for i in std::fs::read_dir(ppath)? {
-                    unimplemented!();
+                    let path = i.unwrap().path();
+                    map.insert(path.file_name().unwrap().to_string_lossy().to_string(), StreamdeckProfileToml::new(path));
                 }
             },
             _ => {},
         }
 
+        //plugin path
+        let mut plpath = path.clone();
+        plpath.push("plugins");
+        
+
         Ok(Self {
-            profiles: map
+            profiles: map,
+            plugin_path: plpath
         })
     }
 }

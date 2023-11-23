@@ -15,6 +15,7 @@ use streamdeck::TextOptions;
 use crate::config::{StreamdeckProfileToml, StreamdeckConfig};
 use crate::plugin::PluginManager;
 use std::fs;
+use std::io::Read;
 //#[derive(Debug)]
 pub struct Deck {
     deck: StreamDeck,
@@ -29,7 +30,7 @@ pub struct Deck {
 
 impl Deck {
     pub fn new(mut config: StreamdeckConfig) -> Result<Deck> {
-        let mut man = PluginManager::new().expect("failed to start plugin manager");
+        let mut man = PluginManager::new(config.plugin_path).expect("failed to start plugin manager");
 
         let vendorid = 0x0FD9;
         let mut pid: Option<u16> = None;
@@ -69,8 +70,13 @@ impl Deck {
                Some(p) => {
                    if p.exists() {
                        match fs::File::open(p) {
-                            Ok(f) => rusttype::Font::try_from_bytes(f.read()),
-                            _ => load_default_font(),
+                            Ok(mut f) => {
+                                let mut buf: Vec<u8> = Vec::new();
+                                f.read_to_end(&mut buf).expect("thing");
+
+                                rusttype::Font::try_from_vec(buf).unwrap_or(load_default_font())
+                            },
+                            _ => load_default_font()
                        }
                    } else {
                        load_default_font()
@@ -123,7 +129,7 @@ impl Deck {
 
             profiles.insert(/*I can not beleve I am setting I am using to_string() on &string*/ name.to_string(), Profile {
                 brightness: profile.brightness.unwrap_or(100),
-                Some(font), 
+                font, 
                 buttons,
             });
         }
@@ -222,6 +228,11 @@ impl Deck {
                 _ => {}
             }
 
+
+            //TODO: this etire section probably needs rewriten since there are a lot of cases where
+            //the rendering breaks. examples: text and image. Idk percicely how I will do it but it
+            //needs done.
+
             //I'm now realizing that if transparent images are supported this code would not do as
             //intended. Eh I will deal with it if it becomes a problem
             match &button.image {
@@ -266,7 +277,7 @@ impl Deck {
                 let g = rgb[1];
                 let b = rgb[2];
 
-                self.deck.set_button_text(index, &rusttype::Font::try_from_bytes(include_bytes!("../../assets/SpaceMonoNerdFont-Regular.ttf")).unwrap(), &streamdeck::TextPosition::Absolute {x: px as i32, y: py as i32}, text.as_str(), &TextOptions::new(Colour {r: 255, g: 255, b: 255}, Colour {r: r, g: g, b: b}, rusttype::Scale::uniform((s as f32)), 0.2)).expect("wth is wrong with the font, how is this even posable. If you run into this seek help"); 
+                self.deck.set_button_text(index, &profile.font, &streamdeck::TextPosition::Absolute {x: px as i32, y: py as i32}, text.as_str(), &TextOptions::new(Colour {r: 255, g: 255, b: 255}, Colour {r: r, g: g, b: b}, rusttype::Scale::uniform((s as f32)), 0.2)).expect("wth is wrong with the font, how is this even posable. If you run into this seek help"); 
 
                 println!("working. text is {}", text);
             }
@@ -334,7 +345,7 @@ impl Button {
         
         proto.get_instruction_request()
     }
-fn pressed(&mut self) {
+    fn pressed(&mut self) {
         match self.behavior.as_mut() {
             Some(b) => b.pressed(),
             None => return,

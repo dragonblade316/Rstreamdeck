@@ -97,6 +97,12 @@ impl Plugin {
 
         self.check_button_presses();
 
+        println!("json a{}a", json_str);
+
+        if json_str == format!("") {
+            return;
+        }
+
         let json = serde_json::from_str::<ClientToServerMessage>(&json_str.as_str()).unwrap();
 
         match json {
@@ -192,7 +198,7 @@ pub struct PluginManager {
 }
 
 impl PluginManager {
-    pub fn new() -> Result<Self> {
+    pub fn new(plugin_path: PathBuf) -> Result<Self> {
         let socket_path = xdg::BaseDirectories::new()?
             .place_runtime_file("plugin_socket")
             .expect("could not place file");
@@ -220,13 +226,13 @@ impl PluginManager {
         }).expect("failed to load close handler");
 
 
-        man.load_plugin();
+        man.load_plugin(plugin_path);
 
         Ok(man)
     }
 
     //this function does not need to be here but it makes it easier
-    fn load_plugin(&mut self) {
+    fn load_plugin(&mut self, plugin_dir: PathBuf) {
         fn send_error(socket: &mut UnixStream) {
             Rstreamdeck_lib::write_string_to_rdeck_socket(
                 socket,
@@ -239,20 +245,38 @@ impl PluginManager {
             .unwrap()
             .find_config_files("plugins");
 
-        for i in plugins.into_iter() {
-            let child = Command::new(i).spawn().unwrap_or({
-                eprintln!("plugin somehow does not exist");
-                continue;
-            });
+
+
+        if !plugin_dir.exists() && !plugin_dir.is_dir() {
+            panic!("not a dir")
+        }
+
+
+
+        println!("loading plugins");
+        for i in std::fs::read_dir(plugin_dir).unwrap() {
+            
+            let plugin_path = i.unwrap().path();
+
+            let debug_string =plugin_path.to_str().unwrap(); 
+            println!("starting plugin {}", debug_string);
+            let child = Command::new(plugin_path).spawn().unwrap();
+            println!("started successfully");
+            //     .unwrap_or({
+            //     eprintln!("plugin somehow does not exist");
+            //     continue;
+            // });
 
             let (mut socket, addr) = self.listener.accept().unwrap();
-
+            
+            println!("awaiting initial report");
             let initial_report = serde_json::from_str::<ClientToServerMessage>(
                 &Rstreamdeck_lib::read_string_from_rdeck_socket(&mut socket)
                     .unwrap()
                     .as_str(),
             )
             .unwrap();
+            println!("recived initial report");
 
             let key: String;
 
@@ -285,7 +309,7 @@ impl PluginManager {
                 p.used = true;
                 p.spawn_button(id, button, opts)
             }
-            None => Err(anyhow!("temp")),
+            None => Err(anyhow!("plugin {} not found", plugin)),
         }
     }
 

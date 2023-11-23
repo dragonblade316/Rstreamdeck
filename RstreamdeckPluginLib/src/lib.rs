@@ -7,14 +7,77 @@ use std::io::Cursor;
 use std::io::{Read, Write};
 use std::time::Duration;
 use std::{collections::HashMap, fmt::Result, os::unix::net::UnixStream, todo};
-use Rstreamdeck_lib::{ButtonReport, ClientToServerMessage, InitialReport, ServerToClientMessage, ButtonDesc};
+use Rstreamdeck_lib::{ButtonReport, ClientToServerMessage, InitialReport, ServerToClientMessage };
 
+pub use Rstreamdeck_lib::ButtonDesc;
+
+
+
+pub struct Context {
+    socket: UnixStream,
+}
+
+impl Context {
+    fn new() -> Self {
+        let socket = UnixStream::connect("/tmp/rdeck.sock").unwrap();
+
+        Context {
+            socket
+        }
+    }
+
+    pub fn send_text(&mut self, index: u8, text: String) {
+        self.send_message(ClientToServerMessage::BUTTONREPORT(ButtonReport {
+            id: index,
+            text: Some(text),
+            image: None,
+            rgb: None,
+        }));
+    }
+
+    pub fn send_image(&mut self, index: u8, image: DynamicImage) {
+        let b64 = base64::engine::general_purpose::STANDARD_NO_PAD;
+
+        let mut buf: Vec<u8> = Vec::new();
+        &image.write_to(&mut Cursor::new(&mut buf), image::ImageOutputFormat::Png);
+
+        let mut serialized = String::new();
+        b64.encode_string(buf, &mut serialized);
+
+
+        self.send_message(ClientToServerMessage::BUTTONREPORT(ButtonReport {
+            id: index as u8,
+            text: None,
+            image: Some(serialized),
+            rgb: None,
+        }));
+    }
+
+    pub fn send_rgb(&mut self, index: u8, rgb: [u8; 3]) {
+        self.send_message(ClientToServerMessage::BUTTONREPORT(ButtonReport {
+            id: index,
+            text: None,
+            image: None,
+            rgb: Some(rgb),
+        }));
+    }
+
+
+    fn send_message(&mut self, message: ClientToServerMessage) {
+        let json = serde_json::to_string(&message).unwrap();
+        Rstreamdeck_lib::write_string_to_rdeck_socket(&mut self.socket, json);
+    }
+}
+
+pub enum ButtonEvent {
+    Pressed,
+    Depressed,
+}
 
 //#[derive(Debug)]
-pub struct PluginAPI<F, NBF> 
-where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u8, Option<String>, [u8; 2], Option<HashMap<String, String>>)
-{
-    socket: UnixStream,
+pub struct PluginAPI<CBE: FnMut(&mut Context, u8, Option<String>, [u8; 2], Option<HashMap<String, String>>), BE: FnMut(&mut Context, ButtonEvent, u8)> {
+    context: Context,
+
     name: String,
     desc: Option<String>,
     author: Option<String>,
@@ -22,18 +85,16 @@ where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u
     buttons: Vec<ButtonDesc>,
     profiles: HashMap<String, String>,
 
-    new_button_function: NBF,
+    new_button_function: CBE, 
 
-    pressed_function: F,
-    depressed_function: F,
- 
+
+    button_callback: BE,
 }
 
-impl<F, NBF> PluginAPI<F, NBF> 
-where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u8, Option<String>, [u8; 2], Option<HashMap<String, String>>)
-{
-    ///starts the plugin api and sends the initial report this should be the first thing done to
-    ///ensure the plugin manager does not dismiss and kill the plugin
+impl<CBE, BE> PluginAPI<CBE, BE> 
+where CBE: FnMut(&mut Context, u8, Option<String>, [u8; 2], Option<HashMap<String, String>>), BE: FnMut(&mut Context, ButtonEvent, u8) {
+    ///starts the plugin api and sends the initial report to Rstreamdeck. This should be the first thing done to
+    ///ensure the plugin manager does not timeout and kill the plugin
     pub fn new(
         name: String,
         desc: Option<String>,
@@ -42,24 +103,23 @@ where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u
         buttons: Vec<ButtonDesc>,
         profiles: HashMap<String, String>, 
 
-        new_button_function: NBF,
+        new_button_function: CBE, 
 
-        pressed_function: F,
-        depressed_function: F,
+        button_callback: BE,
         
     ) -> anyhow::Result<Self> {
-        let socket = UnixStream::connect("/tmp/rdeck.sock").unwrap();
+
+        let context = Context::new();
 
         let mut papi = Self {
-            socket,
+            context,
             name,
             desc,
             author,
             buttons,
             profiles,
             new_button_function,
-            pressed_function,
-            depressed_function,
+            button_callback,
         };
 
         papi.send_initial_report();
@@ -80,7 +140,7 @@ where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u
         //     })
         //     .collect::<Vec<String>>();
         //
-        self.send_message(ClientToServerMessage::INITIALREPORT(InitialReport {
+        self.context.send_message(ClientToServerMessage::INITIALREPORT(InitialReport {
             name: self.name.clone(),
             desc: self.desc.clone(),
             author: self.author.clone(),
@@ -117,53 +177,13 @@ where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u
     //     }));
     // }
 
-    pub fn send_text(&mut self, index: u32, text: String) {
-        self.send_message(ClientToServerMessage::BUTTONREPORT(ButtonReport {
-            id: index as u8,
-            text: Some(text),
-            image: None,
-            rgb: None,
-        }));
-    }
 
-    pub fn send_image(&mut self, index: u32, image: DynamicImage) {
-        let b64 = base64::engine::general_purpose::STANDARD_NO_PAD;
-
-        let mut buf: Vec<u8> = Vec::new();
-        &image.write_to(&mut Cursor::new(&mut buf), image::ImageOutputFormat::Png);
-
-        let mut serialized = String::new();
-        b64.encode_string(buf, &mut serialized);
-
-
-        self.send_message(ClientToServerMessage::BUTTONREPORT(ButtonReport {
-            id: index as u8,
-            text: None,
-            image: Some(serialized),
-            rgb: None,
-        }));
-    }
-
-    pub fn send_rgb(&mut self, index: u32, rgb: [u8; 3]) {
-        self.send_message(ClientToServerMessage::BUTTONREPORT(ButtonReport {
-            id: index as u8,
-            text: None,
-            image: None,
-            rgb: Some(rgb),
-        }));
-    }
-
-
-    fn send_message(&mut self, message: ClientToServerMessage) {
-        let json = serde_json::to_string(&message).unwrap();
-        Rstreamdeck_lib::write_string_to_rdeck_socket(&mut self.socket, json);
-    }
 
     //this will later be moved to another thread. I just need proof of concept
     pub fn update(&mut self) {
-        self.socket.set_read_timeout(Some(Duration::new(1, 0)));
+        self.context.socket.set_read_timeout(Some(Duration::new(1, 0)));
         loop {
-            let message = Rstreamdeck_lib::read_string_from_rdeck_socket(&mut self.socket);
+            let message = Rstreamdeck_lib::read_string_from_rdeck_socket(&mut self.context.socket);
 
             match message {
                 Ok(item) => {
@@ -171,14 +191,14 @@ where F: FnMut(&mut PluginAPI<F, NBF>, u8), NBF: FnMut(&mut PluginAPI<F, NBF>, u
                         .unwrap_or(continue);
                     match json {
                         ServerToClientMessage::PRESSED(id) => {
-                            (self.pressed_function)(&mut self, id);
+                            (self.button_callback)(&mut self.context, ButtonEvent::Pressed, id);
                         },
                         ServerToClientMessage::DEPRESSED(id) => {
-                            (self.depressed_function)(&mut self, id);
-                        }
+                            (self.button_callback)(&mut self.context, ButtonEvent::Depressed, id);
+                        },
                         ServerToClientMessage::NEWBUTTON(id) => {
-                            (self.new_button_function)(&mut self, id.id, id.button, id.position, id.opts);
-                        }
+                            (self.new_button_function)(&mut self.context, id.id, id.button, id.position, id.opts);
+                        },
                         _ => {}
                     };
                 }
