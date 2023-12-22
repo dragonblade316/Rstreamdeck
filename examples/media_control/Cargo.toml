@@ -1,14 +1,11 @@
 [package]
-name = "Rstreamdeck-lib"
+name = "media_control"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-image.workspace = true
-resvg = "0.35.0"
-rusttype = "0.9.3"
-serde.workspace = true
-serde_json.workspace = true
-anyhow.workspace = true
+RstreamdeckPluginLib = { path = "../../RstreamdeckPluginLib/" }
+mpris = "2.0.1"
+

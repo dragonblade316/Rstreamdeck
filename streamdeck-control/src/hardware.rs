@@ -16,6 +16,7 @@ use crate::config::{StreamdeckProfileToml, StreamdeckConfig};
 use crate::plugin::PluginManager;
 use std::fs;
 use std::io::Read;
+
 //#[derive(Debug)]
 pub struct Deck {
     deck: StreamDeck,
@@ -50,6 +51,7 @@ impl Deck {
                     .expect("could not connect to streamdeck");
             }
             None => panic!("no streamdeck detected"),
+
         };
         
 
@@ -109,10 +111,10 @@ impl Deck {
                 let plugin: Option<&plugin::Plugin>;
 
                 let button = match bconfig.plugin {
-                    Some(p) => Some(
-                        man.get_button(index, p, bconfig.button, bconfig.opts)
-                            .unwrap(),
-                    ),
+                    Some(p) =>{ 
+                        println!("spawning plugin button");
+                        Some(man.get_button(index, p, bconfig.button, bconfig.opts).unwrap())
+                    },
                     None => match bconfig.button {
                         Some(b) => new_button_protocol(b, bconfig.opts),
                         None => None,
@@ -212,7 +214,9 @@ impl Deck {
 
             self.deck.set_brightness(profile.brightness.clone());
 
+            println!("updating the plugin manager");
             self.manager.update();
+            println!("man updated");
             //yes I see I'm using a match patteren for only one thing. Deal with it. 
             match button.update() { 
                 Some(i) => match i {
@@ -227,6 +231,7 @@ impl Deck {
                 },
                 _ => {}
             }
+
 
 
             //TODO: this etire section probably needs rewriten since there are a lot of cases where
@@ -262,6 +267,9 @@ impl Deck {
 
             //this is so over complicated and breaks over 3 charactors but until I have the
             //modivation to fix it its just going to stay this way
+            //I would let the user pick font size but that may cause issues. maybe I will have per
+            //button font size
+
             if let Some(text) = &button.text.clone() {
 
                 let s = 70/text.len();
@@ -337,11 +345,35 @@ impl Button {
     }
 
     fn update(&mut self) -> Option<Instruction> {
-        let proto = self.behavior.as_ref().unwrap_or(return None);
+        println!("button being updated");
+        
+        //I hate that this works
+        let proto = match &self.behavior {
+            Some(i) => i,
+            None => return None,
+        };
 
-        self.text = Some(proto.get_text()).unwrap_or(self.text);
-        self.rgb = Some(proto.get_rgb()).unwrap_or(self.rgb);
-        self.image = Some(proto.get_image()).unwrap_or(self.image);
+
+        //I know this looks bad but I think my prior implmentation could have been doing weird
+        //stuff with memory so we are going to try this
+
+        match proto.get_text() {
+            Some(t) => self.text = Some(t),
+            _ => {}
+        }
+        println!("got text");
+
+        match proto.get_rgb() {
+            Some(rgb) => self.rgb = Some(rgb),
+            _ => {}
+        }
+        println!("got rgb");
+
+        match proto.get_image() {
+            Some(i) => self.image = Some(i),
+            _ => {}        
+        }
+        println!("got image");
         
         proto.get_instruction_request()
     }

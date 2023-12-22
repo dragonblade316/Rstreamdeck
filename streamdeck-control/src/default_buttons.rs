@@ -1,5 +1,5 @@
 use crate::hardware::Protocol;
-use std::{collections::HashMap, fmt::Debug, format, println, process::Command, unimplemented};
+use std::{collections::HashMap, fmt::Debug, format, println, process::Command, unimplemented, sync::{Mutex, Arc}};
 
 pub fn new_button_protocol(
     button: String,
@@ -16,10 +16,12 @@ pub fn new_button_protocol(
 struct CommandButton {
     command: Command,
     //TODO: use command output 
-    command_output: Option<String>,
+    command_output: Arc<Mutex<Option<String>>>,
+
+    //TODO: we can use a seperate thread to keep up with polling. this will prevent me from
+    //having to add an update method to Protocal.
     display: Option<bool>,
-    display_command: Option<Command>,
-    
+    display_command: Option<Command>,  
 }
 
 impl CommandButton {
@@ -33,15 +35,32 @@ impl CommandButton {
                 .get("command")
                 .unwrap_or(/*wth*/ &"echo yeah, you forgot to set the opts".to_string(),)
         );
+
+        //idk why this needs to be three vars but it made the borrow checker happy
+        let e = "echo yeah, you forgot to set the opts".to_string(); 
+        let opts = opts.clone().unwrap_or(HashMap::new());
+        let base_str = opts.get("command").unwrap_or(&e);
+
+        let mut items = base_str.split_whitespace().map(|i| i.to_string()).collect::<Vec<String>>();
+        //dont need to have a seperate args var since items would only contain arguments after
+        //removing 0
+        let comm = items.remove(0);
+
+
+        let mut command = Command::new(comm);
+        command.args(items);
+
+        
+
         //honestly this looks a little like garbage but whatever.
         return Self {
-            command: Command::new(opts.clone().unwrap_or(HashMap::new()).get("command").unwrap_or(/*wth*/ &"echo yeah, you forgot to set the opts".to_string(),)),
-            command_output: None,
-            display: match opts.clone().unwrap_or(HashMap::new()).get("display") {
+            command, 
+            command_output: Arc::new(Mutex::new(None)),
+            display: match opts.get("display") {
                 Some(t) => Some(t.eq("true")),
                 None => None,
             },
-            display_command: match opts.unwrap_or(HashMap::new()).get("display_command") {
+            display_command: match opts.get("display_command") {
                 Some(c) => Some(Command::new(c)),
                 None => None
             }

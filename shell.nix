@@ -3,6 +3,7 @@ let
   nixpkgs = import <nixpkgs> { overlays = [ rust_overlay ]; };
 in nixpkgs.mkShell {
   buildInputs = with nixpkgs; [
+		dbus
     hidapi
     libusb1
     pkgconf
