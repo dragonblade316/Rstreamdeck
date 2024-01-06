@@ -16,10 +16,10 @@ fn main() {
 
     let descs: Vec<ButtonDesc> = Vec::new();
 
-    PluginAPI::new(
-        format!("example"),
-        Some(format!("An example plugin for Rstreamdeck")),
-        Some(format!("dragonblade316")),
+    let mut api = PluginAPI::new(
+        "example",
+        Some("An example plugin for Rstreamdeck"),
+        Some("dragonblade316"),
         descs,
         HashMap::new(),
         |ctx, id, _button, _position, _opts| {
@@ -29,6 +29,8 @@ fn main() {
         |ctx, _event, id| {
             ctx.send_rgb(id, [0, 0, 30]) 
         },
-
-    );
+    ).unwrap();
+    loop {   
+        api.update();
+    };
 }

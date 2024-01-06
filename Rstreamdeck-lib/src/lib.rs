@@ -15,27 +15,30 @@ use image::imageops;
 
 //TODO: every request will have a uuid the responce must have the same uuid in order to allow for
 //multiple simltainius requests. Hello I'm looking at this and realizing it does not matter.
+//
 
 ///requests that are sent from the controller to the pluginc
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, std::fmt::Debug)]
 pub enum ServerToClientMessage {
     PRESSED(u8),
     DEPRESSED(u8),
     ASSETCALL(u8),
     NEWBUTTON(NewButton),
-    ERROR,
+    Error(ServerError),
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum ClientToServerMessage {
     INITIALREPORT(InitialReport),
     BUTTONREPORT(ButtonReport),
-    ERROR,
+    ERROR(String),
 }
 
-#[derive(Serialize, Deserialize)]
-pub enum Error {
-    UNEXPECTED_MESSAGE,
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum ServerError {
+    BAD_INITIAL_REPORT,
+    UNEXPECTED_OR_BAD_MESSAGE(String),
+    OTHER,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -48,7 +51,7 @@ pub struct InitialReport {
 }
 
 ///will be sent from the controller to the plugin to register a new button
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NewButton {
     pub id: u8,
     pub button: Option<String>,
@@ -80,20 +83,49 @@ use std::io::{Read, Write};
 ///json between the plugin library and the application.
 ///technically this works on anything that implments the Read trait
 pub fn read_string_from_rdeck_socket<T: Read>(socket: &mut T) -> anyhow::Result<String> {
+    println!("reading data from rdeck socket");
+
     let mut len_buf: [u8; 8] = [0; 8];
     socket.read_exact(&mut len_buf);
+    
+    println!("reciving data {} bytes long.", u64::from_le_bytes(len_buf.clone()));
+
     let mut buf: Vec<u8> = Vec::new();
     buf.resize(u64::from_le_bytes(len_buf) as usize, 0);
     socket.read_exact(&mut buf);
+
+    println!("have data");
     Ok(String::from_utf8(buf).unwrap())
 }
 
 pub fn write_string_to_rdeck_socket<T: Write>(socket: &mut T, json: String) {
     let buf = json.into_bytes();
     let size = buf.len();
+    println!("sending data {} bytes long", size);
     let _ = socket.write(&(size as u64).to_le_bytes());
     let _ = socket.write(&buf);
 }
+
+///This is here to prevent me from having to write this code over and over posibly making an
+///error
+pub fn send_message_to_plugin<T: Write>(socket: &mut T, message: ServerToClientMessage) {
+    let mess = serde_json::to_string(&message).unwrap();
+    println!("{mess:?}");
+    write_string_to_rdeck_socket(socket, mess);
+}
+
+pub fn recive_message_from_server<T: Read>(socket: &mut T) -> anyhow::Result<ServerToClientMessage> {
+    let message = read_string_from_rdeck_socket(socket).unwrap();
+    println!("{message:?}");
+    Ok(serde_json::from_str(message.as_str())?)
+}
+
+pub fn recive_message_from_server_nonblocking<T: Read>(socket: &mut T) -> anyhow::Result<ServerToClientMessage> {
+    let message = read_string_from_rdeck_socket(socket).unwrap();
+    println!("{message:?}");
+    Ok(serde_json::from_str(message.as_str())?)
+}
+
 
 //default icon loader. will support svg, png, jpeg, and whatever else is supported by the image
 //library

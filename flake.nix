@@ -10,11 +10,23 @@
 		system = "x86_64-linux";
 		pkgs = import inputs.nixpkgs {
 			overlays = [inputs.rust-overlay.overlays.default];
+			inherit system;
 		};
 		
 	in {
 		packages.${system} = {
-			default = pkgs.callPackage ./streamdeck-control {};
+			default = pkgs.callPackage pkgs.rustPlatform.buildRustPackage rec {
+				pname = "Rstreamdeck";
+				version = "0.0.1-alpha";
+				cargoLock.lockFile = ./Cargo.lock;
+				src = pkgs.lib.cleanSource ./streamdeck-control;
+
+				buildInputs = with pkgs; [
+					hidapi
+					pkgconf
+					libusb1
+				];
+			} {};
 		};
 
 		devShells.${system} = {

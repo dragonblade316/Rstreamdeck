@@ -9,6 +9,8 @@ members = [
   "Rstreamdeck-lib",
   "RstreamdeckPluginLib",
   "./examples/basic_plugin/",
+	"./examples/plugin_test",
+	"./examples/media_control"
 ]
 
 

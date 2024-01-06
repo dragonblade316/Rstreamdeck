@@ -3,7 +3,7 @@ use clap::Parser;
 //cuse anyhow::Result;
 use core::panic;
 use image::DynamicImage;
-use std::io::Cursor;
+use std::io::{Cursor, Error};
 use std::io::{Read, Write};
 use std::time::Duration;
 use std::{collections::HashMap, fmt::Result, os::unix::net::UnixStream, todo};
@@ -26,10 +26,10 @@ impl Context {
         }
     }
 
-    pub fn send_text(&mut self, index: u8, text: String) {
+    pub fn send_text(&mut self, index: u8, text: &str) {
         self.send_message(ClientToServerMessage::BUTTONREPORT(ButtonReport {
             id: index,
-            text: Some(text),
+            text: Some(text.to_string()),
             image: None,
             rgb: None,
         }));
@@ -96,9 +96,9 @@ where CBE: FnMut(&mut Context, u8, Option<String>, [u8; 2], Option<HashMap<Strin
     ///starts the plugin api and sends the initial report to Rstreamdeck. This should be the first thing done to
     ///ensure the plugin manager does not timeout and kill the plugin
     pub fn new(
-        name: String,
-        desc: Option<String>,
-        author: Option<String>,
+        name: &str,
+        desc: Option<&str>,
+        author: Option<&str>,
 
         buttons: Vec<ButtonDesc>,
         profiles: HashMap<String, String>, 
@@ -111,9 +111,20 @@ where CBE: FnMut(&mut Context, u8, Option<String>, [u8; 2], Option<HashMap<Strin
 
         let context = Context::new();
 
+        //no idea if match is the right thing to use here. idk
+        let desc = match desc {
+            Some(i) => Some(i.to_string()),
+            None => None,
+        };
+
+        let author = match author {
+            Some(i) => Some(i.to_string()),
+            None => None,
+        };
+
         let mut papi = Self {
             context,
-            name,
+            name: name.to_string(),
             desc,
             author,
             buttons,
@@ -177,34 +188,52 @@ where CBE: FnMut(&mut Context, u8, Option<String>, [u8; 2], Option<HashMap<Strin
     //     }));
     // }
 
+    pub fn set_blocking(&mut self, set: bool){
+        self.context.socket.set_nonblocking(set);
 
+    }
 
     //this will later be moved to another thread. I just need proof of concept
     pub fn update(&mut self) {
-        self.context.socket.set_read_timeout(Some(Duration::new(1, 0)));
-        loop {
-            let message = Rstreamdeck_lib::read_string_from_rdeck_socket(&mut self.context.socket);
-
-            match message {
-                Ok(item) => {
-                    let json = serde_json::from_str::<ServerToClientMessage>(&item.as_str())
-                        .unwrap_or(continue);
-                    match json {
-                        ServerToClientMessage::PRESSED(id) => {
-                            (self.button_callback)(&mut self.context, ButtonEvent::Pressed, id);
-                        },
-                        ServerToClientMessage::DEPRESSED(id) => {
-                            (self.button_callback)(&mut self.context, ButtonEvent::Depressed, id);
-                        },
-                        ServerToClientMessage::NEWBUTTON(id) => {
-                            (self.new_button_function)(&mut self.context, id.id, id.button, id.position, id.opts);
-                        },
-                        _ => {}
-                    };
-                }
-                Err(e) => continue,
-            }
+        // self.context.socket.set_read_timeout(Some(Duration::new(1, 0)));
+        fn send_error(socket: &mut UnixStream) {
+            Rstreamdeck_lib::write_string_to_rdeck_socket(socket, serde_json::to_string(&Rstreamdeck_lib::ClientToServerMessage::ERROR("bad message".to_string())).unwrap());
         }
+
+
+            let json = match Rstreamdeck_lib::recive_message_from_server(&mut self.context.socket) {
+                Ok(k) => k,
+                Err(e) => {
+                    match e {
+                        //std::io::Error
+                        Error => {
+                            
+                        },
+                        _ => {
+                            ServerToClientMessage::Error(Rstreamdeck_lib::ServerError::OTHER)
+                        },
+                    }
+                },
+            };
+
+            println!("data in here");
+            
+            match json {
+                ServerToClientMessage::PRESSED(id) => {
+                    (self.button_callback)(&mut self.context, ButtonEvent::Pressed, id);
+                },
+                ServerToClientMessage::DEPRESSED(id) => {
+                    (self.button_callback)(&mut self.context, ButtonEvent::Depressed, id);
+                },
+                ServerToClientMessage::NEWBUTTON(id) => {
+                    println!("got new button request");
+                    (self.new_button_function)(&mut self.context, id.id, id.button, id.position, id.opts);
+                },
+                _ => {
+                    println!("sending error");
+                    send_error(&mut self.context.socket)
+                }
+            };
     }
 }
 

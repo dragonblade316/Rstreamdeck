@@ -1,5 +1,5 @@
 use crate::hardware::{self, Protocol};
-use anyhow::{anyhow, Ok, Result};
+use anyhow::{anyhow, Result};
 use base64::Engine;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
@@ -61,6 +61,7 @@ impl Plugin {
             opts,
         });
 
+        println!("new button report sending");
         Rstreamdeck_lib::write_string_to_rdeck_socket(
             &mut self.socket,
             serde_json::to_string(&data).expect("json error"),
@@ -93,15 +94,18 @@ impl Plugin {
     //TODO: make this multithreaded
     fn update(&mut self) {
         //read from socket
+        self.socket.set_read_timeout(Some(Duration::new(0, 5000)));
+        
         let json_str = Rstreamdeck_lib::read_string_from_rdeck_socket(&mut self.socket).unwrap();
+        // println!("recived json");
 
         self.check_button_presses();
-
-        println!("json a{}a", json_str);
 
         if json_str == format!("") {
             return;
         }
+
+        println!("processing report {json_str}");
 
         let json = serde_json::from_str::<ClientToServerMessage>(&json_str.as_str()).unwrap();
 
@@ -131,16 +135,24 @@ impl Plugin {
     }
 
     fn check_button_presses(&mut self) {
-        let state = self
-            .button_press_rx
-            .recv_timeout(Duration::new(0, 5000000))
-            .unwrap_or(return);
+        println!("checking plugin button status");
+        
+        let state = match self.button_press_rx.try_recv() {
+            Ok(i) => i,
+            Err(e) => match e {
+                std::sync::mpsc::TryRecvError::Empty => return,
+                std::sync::mpsc::TryRecvError::Disconnected => panic!("WTH is going on here! why is this on with no buttons reporting to it?"),
+            },
+        };
+
+        //TODO: bugbug: despite the buttons being pressed, there is no event ever recived
+        println!("plugin putton status changed");
 
         match state {
-            press_state::PRESSED(id) => Rstreamdeck_lib::write_string_to_rdeck_socket(
-                &mut self.socket,
-                serde_json::to_string(&ServerToClientMessage::PRESSED(id)).unwrap(),
-            ),
+            press_state::PRESSED(id) => {
+                println!("plugin button press detected");
+                Rstreamdeck_lib::send_message_to_plugin(&mut self.socket, ServerToClientMessage::PRESSED(id));
+            }
             press_state::DEPRESSED(id) => Rstreamdeck_lib::write_string_to_rdeck_socket(
                 &mut self.socket,
                 serde_json::to_string(&ServerToClientMessage::DEPRESSED(id)).unwrap(),
@@ -171,15 +183,21 @@ struct PluginButton {
 
 impl Protocol for PluginButton {
     fn pressed(&mut self) {
-        self.plugin.send(press_state::PRESSED(self.id));
+        println!("plugin button pressed");
+        self.plugin.send(press_state::PRESSED(self.id)).unwrap();
     }
     fn depressed(&mut self) {
-        self.plugin.send(press_state::DEPRESSED(self.id));
+        self.plugin.send(press_state::DEPRESSED(self.id)).unwrap();
     }
     fn get_image(&self) -> Option<image::DynamicImage> {
         //perhaps set a hashing system to make this cheaper
         self.image.lock().unwrap().clone()
         //self.image.().unwrap().clone()
+    }
+    fn get_rgb(&self) -> Option<[u8; 3]> {
+        let thing = self.rgb.lock().unwrap().clone();
+        println!("plugin rgb is: {thing:?}");
+        thing
     }
 }
 
@@ -258,7 +276,7 @@ impl PluginManager {
             
             let plugin_path = i.unwrap().path();
 
-            let debug_string =plugin_path.to_str().unwrap(); 
+            let debug_string = plugin_path.to_str().unwrap(); 
             println!("starting plugin {}", debug_string);
             let child = Command::new(plugin_path).spawn().unwrap();
             println!("started successfully");
@@ -291,6 +309,8 @@ impl PluginManager {
                 }
             };
 
+            println!("plugin loaded. name is {}", &plugin.name);
+
             self.plugins.insert(key, (plugin, child));
         }
     }
@@ -322,6 +342,7 @@ impl PluginManager {
             let (id, (plugin, child)) = i;
 
             if plugin.used == false {
+                println!("removing: {}", id);
                 remove_list.push(id.clone());
             }
         }
@@ -338,7 +359,9 @@ impl PluginManager {
         for i in self.plugins.iter_mut() {
             let (name, (plugin, child)) = i;
 
+
             plugin.update();
+
         }
     }
 }
