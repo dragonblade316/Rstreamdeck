@@ -26,7 +26,7 @@
 					pkgconf
 					libusb1
 				];
-			} {};
+			};
 		};
 
 		devShells.${system} = {

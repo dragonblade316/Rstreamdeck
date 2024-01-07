@@ -207,9 +207,6 @@ where CBE: FnMut(&mut Context, u8, Option<String>, [u8; 2], Option<HashMap<Strin
                     match e {
                         //std::io::Error
                         Error => {
-                            
-                        },
-                        _ => {
                             ServerToClientMessage::Error(Rstreamdeck_lib::ServerError::OTHER)
                         },
                     }

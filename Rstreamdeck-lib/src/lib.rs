@@ -151,6 +151,7 @@ pub fn load_icon(path: PathBuf) -> Option<image::DynamicImage> {
     }
 }
 
+//TODO: make the logging functions work so plugins and the server can save to the same file
 fn log_info(info: String) {
     unimplemented!()
 }

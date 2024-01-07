@@ -12,7 +12,7 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{eprint, todo};
-use Rstreamdeck_lib::{ClientToServerMessage, Error, NewButton, ServerToClientMessage, ButtonDesc};
+use Rstreamdeck_lib::{ClientToServerMessage, NewButton, ServerToClientMessage, ButtonDesc};
 use ctrlc;
 
 //use
@@ -129,8 +129,9 @@ impl Plugin {
                 *text = b.text;
 
             }
-            ClientToServerMessage::ERROR => {}
+            ClientToServerMessage::ERROR(i) => {},
             _ => {}
+            
         }
     }
 
@@ -254,7 +255,7 @@ impl PluginManager {
         fn send_error(socket: &mut UnixStream) {
             Rstreamdeck_lib::write_string_to_rdeck_socket(
                 socket,
-                serde_json::to_string(&Rstreamdeck_lib::ServerToClientMessage::ERROR).unwrap(),
+                serde_json::to_string(&Rstreamdeck_lib::ServerToClientMessage::Error(Rstreamdeck_lib::ServerError::BAD_INITIAL_REPORT)).unwrap(),
             );
         }
 

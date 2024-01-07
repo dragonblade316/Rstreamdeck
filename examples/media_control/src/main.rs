@@ -84,7 +84,11 @@ fn main() {
         |ctx, event, id| {
             match event {
                 RstreamdeckPluginLib::ButtonEvent::Pressed => {
+                    let button = buttons.get(&id).unwrap_or(return);
                     
+                    match button {
+                        Button::PlayPause
+                    }
                 },
                 _ => {}
             }
