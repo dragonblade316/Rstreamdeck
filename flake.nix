@@ -2,7 +2,7 @@
 	description = "A lightweight streamdeck controller with plugin support";
 
 	inputs = {
-		nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
+		nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
 		rust-overlay.url = "github:oxalica/rust-overlay";
 	};
 
@@ -18,13 +18,17 @@
 			default = pkgs.callPackage pkgs.rustPlatform.buildRustPackage rec {
 				pname = "Rstreamdeck";
 				version = "0.0.1-alpha";
+				
+				src = ./.;
 				cargoLock.lockFile = ./Cargo.lock;
-				src = pkgs.lib.cleanSource ./streamdeck-control;
+				buildAndTestSubdir = "streamdeck-control";
 
-				buildInputs = with pkgs; [
+
+				nativeBuildInputs = with pkgs; [
 					hidapi
 					pkgconf
 					libusb1
+					dbus
 				];
 			};
 		};
@@ -38,6 +42,7 @@
 					rust-bin.stable.latest.default
 					rust-analyzer
 					lldb
+					dbus
 				];
 			};
 		};
