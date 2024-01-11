@@ -23,13 +23,17 @@ fn main() {
         descs,
         HashMap::new(),
         |ctx, id, _button, _position, _opts| {
+            ctx.send_text(id, "hi");
             ctx.send_rgb(id, [30, 0, 0])
         },
 
         |ctx, _event, id| {
+            ctx.send_text(id, "bye");
             ctx.send_rgb(id, [0, 0, 30]) 
         },
     ).unwrap();
+
+    api.set_blocking(true);
     loop {   
         api.update();
     };

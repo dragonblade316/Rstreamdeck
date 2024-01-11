@@ -202,19 +202,21 @@ where CBE: FnMut(&mut Context, u8, Option<String>, [u8; 2], Option<HashMap<Strin
 
 
             let json = match Rstreamdeck_lib::recive_message_from_server(&mut self.context.socket) {
-                Ok(k) => k,
-                Err(e) => {
-                    match e {
-                        //std::io::Error
-                        Error => {
-                            ServerToClientMessage::Error(Rstreamdeck_lib::ServerError::OTHER)
-                        },
+                Ok(k) => match k {
+                    Some(i) => i,
+                    None => {
+                        // print!("no value. aborting update");
+                        return
                     }
+                },
+                Err(e) => {
+                    //std::io::Error
+                    ServerToClientMessage::Error(Rstreamdeck_lib::ServerError::OTHER)
                 },
             };
 
-            println!("data in here");
-            
+            println!("{json:?}");
+
             match json {
                 ServerToClientMessage::PRESSED(id) => {
                     (self.button_callback)(&mut self.context, ButtonEvent::Pressed, id);

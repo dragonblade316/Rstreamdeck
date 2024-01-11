@@ -83,18 +83,18 @@ use std::io::{Read, Write};
 ///json between the plugin library and the application.
 ///technically this works on anything that implments the Read trait
 pub fn read_string_from_rdeck_socket<T: Read>(socket: &mut T) -> anyhow::Result<String> {
-    println!("reading data from rdeck socket");
+    // println!("reading data from rdeck socket");
 
     let mut len_buf: [u8; 8] = [0; 8];
     socket.read_exact(&mut len_buf);
     
-    println!("reciving data {} bytes long.", u64::from_le_bytes(len_buf.clone()));
+    // println!("reciving data {} bytes long.", u64::from_le_bytes(len_buf.clone()));
 
     let mut buf: Vec<u8> = Vec::new();
     buf.resize(u64::from_le_bytes(len_buf) as usize, 0);
     socket.read_exact(&mut buf);
 
-    println!("have data");
+    // println!("have data");
     Ok(String::from_utf8(buf).unwrap())
 }
 
@@ -114,15 +114,19 @@ pub fn send_message_to_plugin<T: Write>(socket: &mut T, message: ServerToClientM
     write_string_to_rdeck_socket(socket, mess);
 }
 
-pub fn recive_message_from_server<T: Read>(socket: &mut T) -> anyhow::Result<ServerToClientMessage> {
+pub fn recive_message_from_server<T: Read>(socket: &mut T) -> anyhow::Result<Option<ServerToClientMessage>> {
     let message = read_string_from_rdeck_socket(socket).unwrap();
+    if message.as_str() == "" {
+        // println!("zero message");
+        return Ok(None)
+    }
     println!("{message:?}");
-    Ok(serde_json::from_str(message.as_str())?)
+    Ok(Some(serde_json::from_str(message.as_str())?))
 }
 
 pub fn recive_message_from_server_nonblocking<T: Read>(socket: &mut T) -> anyhow::Result<ServerToClientMessage> {
     let message = read_string_from_rdeck_socket(socket).unwrap();
-    println!("{message:?}");
+    // println!("{message:?}");
     Ok(serde_json::from_str(message.as_str())?)
 }
 
