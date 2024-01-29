@@ -42,8 +42,8 @@
 	in {
 		packages.${system} = rstreamdeck; 
 
-		overlays = (prev: final: {
-			default = final.callPackage rstreamdeck {}; 
+		overlays.default = (final: prev: {
+			rstreamdeck = final.callPackage rstreamdeck {}; 
 		});
 
 
