@@ -43,7 +43,7 @@
 		packages.${system} = rstreamdeck; 
 
 		overlays = (prev: final: {
-			rstreamdeck = final.callPackage rstreamdeck {}; 
+			default = final.callPackage rstreamdeck {}; 
 		});
 
 
@@ -53,7 +53,6 @@
 					hidapi
 					pkgconf
 					libusb1
-					cairo
 					dbus
 					cargo
 					rustc
