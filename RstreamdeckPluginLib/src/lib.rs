@@ -27,6 +27,7 @@ impl Context {
     }
 
     pub fn send_text(&mut self, index: u8, text: &str) {
+        println!("sending text: {text}");
         self.send_message(ClientToServerMessage::BUTTONREPORT(ButtonReport {
             id: index,
             text: Some(text.to_string()),
@@ -69,6 +70,7 @@ impl Context {
     }
 }
 
+#[derive(Debug)]
 pub enum ButtonEvent {
     Pressed,
     Depressed,
@@ -219,9 +221,11 @@ where CBE: FnMut(&mut Context, u8, Option<String>, [u8; 2], Option<HashMap<Strin
 
             match json {
                 ServerToClientMessage::PRESSED(id) => {
+                    println!("pressed :)");
                     (self.button_callback)(&mut self.context, ButtonEvent::Pressed, id);
                 },
                 ServerToClientMessage::DEPRESSED(id) => {
+                    println!("depressed :(");
                     (self.button_callback)(&mut self.context, ButtonEvent::Depressed, id);
                 },
                 ServerToClientMessage::NEWBUTTON(id) => {

@@ -90,7 +90,6 @@ impl Plugin {
         }))
     }
 
-
     //TODO: make this multithreaded
     fn update(&mut self) {
         //read from socket
@@ -124,9 +123,18 @@ impl Plugin {
                 let mut im = button.image.lock().unwrap();
                 let mut rgb = button.rgb.lock().unwrap();
                 let mut text = button.text.lock().unwrap();
+                
+
+                println!("text thing is this stupid: {:?}", b.text);
+                
                 *im = image;
                 *rgb = b.rgb;
-                *text = b.text;
+                // *text = b.text;
+
+                match b.text {
+                    Some(t) => *text = Option::Some(t),
+                    None => {}
+                }
 
             }
             ClientToServerMessage::ERROR(i) => {},
@@ -136,7 +144,7 @@ impl Plugin {
     }
 
     fn check_button_presses(&mut self) {
-        println!("checking plugin button status");
+        // println!("checking plugin button status");
         
         let state = match self.button_press_rx.try_recv() {
             Ok(i) => i,
@@ -197,7 +205,12 @@ impl Protocol for PluginButton {
     }
     fn get_rgb(&self) -> Option<[u8; 3]> {
         let thing = self.rgb.lock().unwrap().clone();
-        println!("plugin rgb is: {thing:?}");
+        // println!("plugin rgb is: {thing:?}");
+        thing
+    }
+    fn get_text(&self) -> Option<String> {
+        let thing = self.text.lock().unwrap().clone();
+        // println!("plugin text is: {thing:?}");
         thing
     }
 }
@@ -218,11 +231,14 @@ pub struct PluginManager {
 
 impl PluginManager {
     pub fn new(plugin_path: PathBuf) -> Result<Self> {
-        let socket_path = xdg::BaseDirectories::new()?
-            .place_runtime_file("plugin_socket")
-            .expect("could not place file");
 
         let socket_path = PathBuf::from("/tmp/rdeck.sock");
+
+        if socket_path.exists() {
+            std::fs::remove_file("/tmp/rdeck.sock").expect("failed to destroy file");
+        }
+
+
         let listener = UnixListener::bind(socket_path).expect("socket not bound");
 
         //loads all plugins. the unused ones will be unloaded by self.lock().
@@ -236,8 +252,8 @@ impl PluginManager {
             listener: listener,
             plugins: HashMap::new(),
         };
-        
-        //makes the Drop impl irrelevent.
+
+                //makes the Drop impl irrelevent.
         ctrlc::set_handler(|| {
             std::fs::remove_file("/tmp/rdeck.sock").expect("failed to destroy file");
             //for some reason setting a handler makes the program not exit on SIGINT. 

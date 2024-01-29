@@ -3,7 +3,15 @@ use std::eprintln;
 use std::fmt::Debug;
 use std::println;
 use std::time::Duration;
+use image::ImageBuffer;
+use image::Pixel;
+use image::Rgb;
+use image::RgbImage;
+use image::Rgba;
+use imageproc::drawing::text_size;
+use imageproc::rgb_image;
 use rusttype::Font::*;
+use rusttype::Scale;
 
 use crate::default_buttons::new_button_protocol;
 use crate::plugin;
@@ -44,7 +52,7 @@ impl Deck {
             }
         });
 
-        let deck: StreamDeck;
+        let deck: StreamDeck;pub struct ImageBuf { /* private fields */ }
         match pid {
             Some(id) => {
                 deck = streamdeck::StreamDeck::connect_with_hid(&hid, vendorid, id, None)
@@ -126,12 +134,13 @@ impl Deck {
                     None => None,
                 };
 
-                buttons.push(Button::new(bconfig.text, bconfig.rgb, image, button));
+                buttons.push(Button::new(bconfig.text, bconfig.fontsize, bconfig.text_xoffset, bconfig.text_yoffset, bconfig.rgb, image, button));
             }
 
             profiles.insert(/*I can not beleve I am setting I am using to_string() on &string*/ name.to_string(), Profile {
                 brightness: profile.brightness.unwrap_or(100),
-                font, 
+                font,
+                fontsize: profile.fontsize.unwrap_or(24.0),
                 buttons,
             });
         }
@@ -214,10 +223,10 @@ impl Deck {
 
             self.deck.set_brightness(profile.brightness.clone());
 
-            println!("updating the plugin manager");
+            // println!("updating the plugin manager");
             self.manager.update();
-            println!("man updated");
-            //yes I see I'm using a match patteren for only one thing. Deal with it. 
+            
+            // yes I see I'm using a match pateren for only one thing. Deal with it. 
             match button.update() { 
                 Some(i) => match i {
                     Instruction::ChangeProfile(p) => {
@@ -232,7 +241,45 @@ impl Deck {
                 _ => {}
             }
 
+            // let im = &image::DynamicImage::new_rgb8(72, 72);
+            // let tx = ctx.text();
+            //
 
+
+            let mut im: DynamicImage;
+            if let Some(i) = &button.image {
+                im = i.clone();
+            } else if let Some(i) = &button.rgb {
+                im =  DynamicImage::from(ImageBuffer::from_pixel(72, 72, Rgb([i[0], i[1], i[2]])));
+                
+            } else {
+                im = DynamicImage::new_rgba8(72, 72);
+            }
+            
+            
+            if let Some(t) = &button.text {
+
+                let scale = Scale::uniform(button.fontsize.unwrap_or(profile.fontsize));
+                let (text_w, text_h) = text_size(scale, &profile.font, t);
+
+
+                im = DynamicImage::from(imageproc::drawing::draw_text(
+                    &im, 
+                    Rgba([255,255,255,255]), 
+                    ((im.width() / 2) as i32 - (text_w / 2)) - button.text_xoffset.unwrap_or(0), 
+                    ((im.height() /2)  as i32 - (text_h / 2)) - button.text_yoffset.unwrap_or(0), 
+                    scale,
+                    &profile.font, 
+                    t
+                ));
+            }
+
+            let e = self.deck.set_button_image(index, im);
+            println!("{e:?}");
+
+
+
+            //hopefully this does not make a return
 
             //TODO: this etire section probably needs rewriten since there are a lot of cases where
             //the rendering breaks. examples: text and image. Idk percicely how I will do it but it
@@ -240,56 +287,57 @@ impl Deck {
 
             //I'm now realizing that if transparent images are supported this code would not do as
             //intended. Eh I will deal with it if it becomes a problem
-            match &button.image {
-                Some(im) => self
-                    .deck
-                    .set_button_image(index, im.clone())
-                    .expect("could nto set image"),
-                None => match button.rgb {
-                    Some(rgb) => self
-                        .deck
-                        .set_button_rgb(
-                            index,
-                            &Colour {
-                                r: rgb[0],
-                                g: rgb[1],
-                                b: rgb[2],
-                            },
-                        )
-                        .expect("could not set rgb"),
-                    None => self
-                        .deck
-                        .set_button_rgb(index, &Colour { r: 0, g: 0, b: 0 })
-                        .expect("could not set black"),
-                },
-            };
-
-
-            //this is so over complicated and breaks over 3 charactors but until I have the
-            //modivation to fix it its just going to stay this way
-            //I would let the user pick font size but that may cause issues. maybe I will have per
-            //button font size
-
-            if let Some(text) = &button.text.clone() {
-
-                let s = 70/text.len();
-
-                let px = (s as f32 / 3.5 * text.len() as f32) as i32;
-                let py = (s as f32 / 25.0 * (text.len() as f32)) as i32;
-
-                println!("pos is {} {}", px, py);
-
-                let rgb = button.rgb.unwrap_or([0;3]);
-
-                let r = rgb[0];
-                let g = rgb[1];
-                let b = rgb[2];
-
-                self.deck.set_button_text(index, &profile.font, &streamdeck::TextPosition::Absolute {x: px as i32, y: py as i32}, text.as_str(), &TextOptions::new(Colour {r: 255, g: 255, b: 255}, Colour {r: r, g: g, b: b}, rusttype::Scale::uniform((s as f32)), 0.2)).expect("wth is wrong with the font, how is this even posable. If you run into this seek help"); 
-
-                println!("working. text is {}", text);
-            }
-
+            // match &button.image {
+            //     Some(im) => self
+            //         .deck
+            //         .set_button_image(index, im.clone())
+            //         .expect("could nto set image"),
+            //     None => match button.rgb {
+            //         Some(rgb) => self
+            //             .deck
+            //             .set_button_rgb(
+            //                 index,
+            //                 &Colour {
+            //                     r: rgb[0],
+            //                     g: rgb[1],
+            //                     b: rgb[2],
+            //                 },
+            //             )
+            //             .expect("could not set rgb"),
+            //         None => self
+            //             .deck
+            //             .set_button_rgb(index, &Colour { r: 0, g: 0, b: 0 })
+            //             .expect("could not set black"),
+            //     },
+            // };
+            //
+            // 
+            //
+            //
+            // //this is very over complicated and breaks over 3 charactors but until I have the
+            // //modivation to fix it its just going to stay this way
+            // //I would let the user pick font size but that may cause issues. maybe I will have per
+            // //button font size
+            //
+            // if let Some(text) = &button.text.clone() {
+            //
+            //     let s = 70/text.len();
+            //
+            //     let px = (s as f32 / 3.5 * text.len() as f32) as i32;
+            //     let py = (s as f32 / 25.0 * (text.len() as f32)) as i32;
+            //
+            //     println!("pos is {} {}", px, py);
+            //
+            //     let rgb = button.rgb.unwrap_or([0;3]);
+            //
+            //     let r = rgb[0];
+            //     let g = rgb[1];
+            //     let b = rgb[2];
+            //
+            //     self.deck.set_button_text(index, &profile.font, &streamdeck::TextPosition::Absolute {x: px as i32, y: py as i32}, text.as_str(), &TextOptions::new(Colour {r: 255, g: 255, b: 255}, Colour {r: r, g: g, b: b}, rusttype::Scale::uniform((s as f32)), 0.2)).expect("wth is wrong with the font, how is this even posable. If you run into this seek help"); 
+            //
+            //     println!("working. text is {}", text);
+            
             match is_pressed {
                 ButtonStatus::Pressed => button.pressed(),
                 ButtonStatus::Depressed => button.depressed(),
@@ -306,30 +354,38 @@ impl Deck {
 pub struct Profile {
     brightness: u8,
     font: rusttype::Font<'static>,
+    fontsize: f32,
     buttons: Vec<Button>,
 }
 
 ///This is the stuct which is loaded into profiles to make interacting with behavior easier
 pub struct Button {
     text: Option<String>,
+    fontsize: Option<f32>,
+    text_xoffset: Option<i32>,
+    text_yoffset: Option<i32>,
     rgb: Option<[u8; 3]>,
     image: Option<DynamicImage>,
-    // font: Option<rusttype::Font>,
     behavior: Option<Box<dyn Protocol>>,
 }
 
 impl Button {
     pub fn new(
         text: Option<String>,
+        fontsize: Option<f32>,
+        text_xoffset: Option<i32>,
+        text_yoffset: Option<i32>,
         rgb: Option<[u8; 3]>,
         image: Option<DynamicImage>,
         behavior: Option<Box<dyn Protocol>>,
     ) -> Self {
         Self {
             text: text,
+            fontsize,
+            text_xoffset,
+            text_yoffset,
             rgb: rgb,
             image: image,
-            // font: Some(rusttype::Font::try_from_bytes(include_bytes!()).unwrap()),
             behavior: behavior,
         }
     }
@@ -337,9 +393,11 @@ impl Button {
     fn empty() -> Self {
         Button {
             text: None,
+            fontsize: None,
+            text_xoffset: None,
+            text_yoffset: None,
             rgb: None,
             image: None,
-            // font: None,
             behavior: None,
         }
     }
@@ -361,7 +419,7 @@ impl Button {
             Some(t) => self.text = Some(t),
             _ => {}
         }
-        println!("got text");
+        println!("got text {:?}", self.text);
 
         match proto.get_rgb() {
             Some(rgb) => self.rgb = Some(rgb),

@@ -1,5 +1,5 @@
 use mpris::Player;
-use RstreamdeckPluginLib::{ButtonDesc, PluginAPI};
+use RstreamdeckPluginLib::{ButtonDesc, PluginAPI, ButtonEvent};
 use std::{collections::HashMap, rc::Rc, cell::RefCell};
 
 
@@ -82,11 +82,13 @@ fn main() {
         descs,
         HashMap::new(),
         |ctx, id, button, position, opts| {
-            
+            ctx.send_rgb(id, [50, 0, 0]);
             match button.unwrap_or("play-pause".to_string()).as_str() {
                 "play-pause" => {
                     ctx.send_text(id, "󰏤");
+                    ctx.send_rgb(id, [255,100,100]);
                     println!("creating play-pause");
+                    
                     buttons.borrow_mut().insert(id, Button::PlayPause);
                 },
                 "skip" => {
@@ -99,30 +101,38 @@ fn main() {
                 },
                 _ => {
                     buttons.borrow_mut().insert(id, Button::PlayPause);
+                    ctx.send_rgb(id, [255,255,255]);
                     println!("yeah there was no button input so you probably did something dumb lol");
                 },
             };
         },
         |ctx, event, id| {
+            // ctx.send_rgb(id, [255,255,255]);
+            println!("Event: {event:?} triggered");
+            ctx.send_rgb(id, [255,0,0]);
+
             match event {
-                RstreamdeckPluginLib::ButtonEvent::Pressed => {
-                    let button = buttons.borrow().get(&id).unwrap_or(return);
-                    
-                    match button {
-                        &Button::PlayPause => contrller.borrow_mut().toggle_player(),
-                        &Button::Skip => contrller.borrow_mut().skip(),
-                        &Button::Back => contrller.borrow_mut().back(),
-                        _ => {}
+                ButtonEvent::Pressed => ctx.send_rgb(id, [0,255,0]),
+                ButtonEvent::Depressed => {
+                    ctx.send_rgb(id, [0,0,255]);
+                    match buttons.borrow_mut().get(&id) {
+                        Some(i) => match i {
+                            Button::PlayPause => {
+                                contrller.borrow_mut().toggle_player()
+                            },
+                            _ => {},
+                        }
+                        _ => {},
                     }
-                },
-                _ => {}
+                }
             }
+
         }
     ).unwrap();
 
     loop {
-        //api.update(); 
-        //contrller.borrow_mut().update();
+        api.update(); 
+        contrller.borrow_mut().update();
     }
 }
 

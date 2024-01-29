@@ -3,13 +3,13 @@
 
 	inputs = {
 		nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
-		rust-overlay.url = "github:oxalica/rust-overlay";
+		# rust-overlay.url = "github:oxalica/rust-overlay";
 	};
 
 	outputs = inputs: let
 		system = "x86_64-linux";
 		pkgs = import inputs.nixpkgs {
-			overlays = [inputs.rust-overlay.overlays.default];
+			# overlays = [inputs.rust-overlay.overlays.default];
 			inherit system;
 		};
 		
@@ -27,9 +27,12 @@
 				nativeBuildInputs = with pkgs; [
 					hidapi
 					pkgconf
+					pkg-config
 					libusb1
 					dbus
 				];
+
+
 			};
 		};
 
@@ -39,12 +42,12 @@
 					hidapi
 					pkgconf
 					libusb1
-					# rust-bin.stable.latest.default
-					rust-analyzer
-					lldb
+					cairo
 					dbus
 					cargo
 					rustc
+					rust-analyzer
+					lldb
 				];
 			};
 		};

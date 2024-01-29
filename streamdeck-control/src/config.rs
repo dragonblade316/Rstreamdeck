@@ -74,6 +74,10 @@ pub enum DeckType {
 #[derive(Clone, Debug, Deserialize)]
 pub struct ButtonConfig {
     pub text: Option<String>,
+    pub fontsize: Option<f32>,
+    pub text_xoffset: Option<i32>,
+    pub text_yoffset: Option<i32>,
+
     pub icon: Option<PathBuf>,
     pub rgb: Option<[u8; 3]>,
     pub opts: Option<HashMap<String, String>>,
@@ -86,6 +90,7 @@ pub struct ButtonConfig {
 pub struct StreamdeckProfileToml {
     pub brightness: Option<u8>,
     pub font: Option<PathBuf>,
+    pub fontsize: Option<f32>,
 
     pub b1: Option<ButtonConfig>,
     pub b2: Option<ButtonConfig>,
@@ -149,7 +154,7 @@ impl StreamdeckConfig {
         //profile path
         let mut ppath = path.clone();
         ppath.push("profiles");
-
+ 
         match ppath.exists() && ppath.is_dir() {
             true => {
                 for i in std::fs::read_dir(ppath)? {

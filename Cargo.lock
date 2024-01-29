@@ -13,6 +13,7 @@ dependencies = [
  "ctrlc",
  "hidapi",
  "image",
+ "imageproc",
  "rusttype",
  "serde",
  "serde_json",
