@@ -43,7 +43,8 @@
 		};
 
 		overlays.default = (final: prev: {
-			rstreamdeck = final.callPackage rstreamdeck {}; 
+			# rstreamdeck = final.callPackage rstreamdeck {}; 
+			rstreamdeck = rstreamdeck; 
 		});
 
 
