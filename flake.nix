@@ -12,9 +12,8 @@
 			# overlays = [inputs.rust-overlay.overlays.default];
 			inherit system;
 		};
-		
-	in {
-		packages.${system} = {
+
+		rstreamdeck = {
 			default = pkgs.callPackage pkgs.rustPlatform.buildRustPackage rec {
 				pname = "Rstreamdeck";
 				version = "0.0.1-alpha";
@@ -38,6 +37,15 @@
 
 			};
 		};
+
+		
+	in {
+		packages.${system} = rstreamdeck; 
+
+		overlays = (prev: final: {
+			rstreamdeck = final.callPackage rstreamdeck {}; 
+		});
+
 
 		devShells.${system} = {
 			default = pkgs.mkShell {
