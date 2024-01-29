@@ -192,7 +192,10 @@ where CBE: FnMut(&mut Context, u8, Option<String>, [u8; 2], Option<HashMap<Strin
 
     pub fn set_blocking(&mut self, set: bool){
         self.context.socket.set_nonblocking(set);
+    }
 
+    pub fn get_ctx(&mut self) -> &mut Context {
+        &mut self.context
     }
 
     //this will later be moved to another thread. I just need proof of concept

@@ -132,7 +132,20 @@ fn main() {
 
     loop {
         api.update(); 
-        contrller.borrow_mut().update();
+        let mut c = contrller.borrow_mut();
+        c.update();
+
+        for i in buttons.borrow().iter() {
+            let (id, button) = &i;
+            match button {
+                Button::PlayPause => match c.isplaying() {
+                    //lol
+                    true => api.get_ctx().send_text(id.clone().clone(), "󰏤"),
+                    false => api.get_ctx().send_text(id.clone().clone(), "󰐊"),
+                },
+                _ => {}
+            }
+        }
     }
 }
 

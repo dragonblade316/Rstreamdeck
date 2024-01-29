@@ -24,12 +24,15 @@
 				buildAndTestSubdir = "streamdeck-control";
 
 
-				nativeBuildInputs = with pkgs; [
+				buildInputs = with pkgs; [
 					hidapi
 					pkgconf
-					pkg-config
 					libusb1
 					dbus
+				];
+
+				nativeBuildInputs = with pkgs; [
+					pkg-config
 				];
 
 
