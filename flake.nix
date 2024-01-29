@@ -13,8 +13,7 @@
 			inherit system;
 		};
 
-		rstreamdeck = {
-			default = pkgs.callPackage pkgs.rustPlatform.buildRustPackage rec {
+		rstreamdeck = pkgs.rustPlatform.buildRustPackage rec {
 				pname = "Rstreamdeck";
 				version = "0.0.1-alpha";
 				
@@ -36,11 +35,12 @@
 
 
 			};
-		};
 
 		
 	in {
-		packages.${system} = rstreamdeck; 
+		packages.${system} = {
+			default = rstreamdeck;
+		};
 
 		overlays.default = (final: prev: {
 			rstreamdeck = final.callPackage rstreamdeck {}; 
