@@ -245,7 +245,7 @@ impl Deck {
             // let tx = ctx.text();
             //
 
-
+            //<renderer>
             let mut im: DynamicImage;
             if let Some(i) = &button.image {
                 im = i.clone();
@@ -258,7 +258,6 @@ impl Deck {
             
             
             if let Some(t) = &button.text {
-
                 let scale = Scale::uniform(button.fontsize.unwrap_or(profile.fontsize));
                 let (text_w, text_h) = text_size(scale, &profile.font, t);
 
@@ -275,69 +274,11 @@ impl Deck {
             }
 
             let e = self.deck.set_button_image(index, im);
-            println!("{e:?}");
+            //</renderer>
 
 
 
-            //hopefully this does not make a return
-
-            //TODO: this etire section probably needs rewriten since there are a lot of cases where
-            //the rendering breaks. examples: text and image. Idk percicely how I will do it but it
-            //needs done.
-
-            //I'm now realizing that if transparent images are supported this code would not do as
-            //intended. Eh I will deal with it if it becomes a problem
-            // match &button.image {
-            //     Some(im) => self
-            //         .deck
-            //         .set_button_image(index, im.clone())
-            //         .expect("could nto set image"),
-            //     None => match button.rgb {
-            //         Some(rgb) => self
-            //             .deck
-            //             .set_button_rgb(
-            //                 index,
-            //                 &Colour {
-            //                     r: rgb[0],
-            //                     g: rgb[1],
-            //                     b: rgb[2],
-            //                 },
-            //             )
-            //             .expect("could not set rgb"),
-            //         None => self
-            //             .deck
-            //             .set_button_rgb(index, &Colour { r: 0, g: 0, b: 0 })
-            //             .expect("could not set black"),
-            //     },
-            // };
-            //
-            // 
-            //
-            //
-            // //this is very over complicated and breaks over 3 charactors but until I have the
-            // //modivation to fix it its just going to stay this way
-            // //I would let the user pick font size but that may cause issues. maybe I will have per
-            // //button font size
-            //
-            // if let Some(text) = &button.text.clone() {
-            //
-            //     let s = 70/text.len();
-            //
-            //     let px = (s as f32 / 3.5 * text.len() as f32) as i32;
-            //     let py = (s as f32 / 25.0 * (text.len() as f32)) as i32;
-            //
-            //     println!("pos is {} {}", px, py);
-            //
-            //     let rgb = button.rgb.unwrap_or([0;3]);
-            //
-            //     let r = rgb[0];
-            //     let g = rgb[1];
-            //     let b = rgb[2];
-            //
-            //     self.deck.set_button_text(index, &profile.font, &streamdeck::TextPosition::Absolute {x: px as i32, y: py as i32}, text.as_str(), &TextOptions::new(Colour {r: 255, g: 255, b: 255}, Colour {r: r, g: g, b: b}, rusttype::Scale::uniform((s as f32)), 0.2)).expect("wth is wrong with the font, how is this even posable. If you run into this seek help"); 
-            //
-            //     println!("working. text is {}", text);
-            
+           
             match is_pressed {
                 ButtonStatus::Pressed => button.pressed(),
                 ButtonStatus::Depressed => button.depressed(),
@@ -421,6 +362,20 @@ impl Button {
         }
         println!("got text {:?}", self.text);
 
+        match proto.get_fontsize() {
+            Some(f) => self.fontsize = Some(f),
+            _ => {}
+        }
+
+        match proto.get_text_offset() {
+            Some(o) => {
+                let (x, y) = o;
+                self.text_xoffset = Some(x);
+                self.text_yoffset = Some(y);
+            }
+            _ => {}
+        }
+
         match proto.get_rgb() {
             Some(rgb) => self.rgb = Some(rgb),
             _ => {}
@@ -466,11 +421,15 @@ pub trait Protocol: Debug {
     fn get_text(&self) -> Option<String> {
         None
     }
+    fn get_fontsize(&self) -> Option<f32> {
+        None
+    }
+    fn get_text_offset(&self) -> Option<(i32, i32)> {
+        None
+    }
     fn get_rgb(&self) -> Option<[u8; 3]> {
         None
     }
-    //TODO: for goodness sakes figure out how to implment this
-    // fn get_font();
     fn get_instruction_request(&self) -> Option<Instruction> {
         None
     }

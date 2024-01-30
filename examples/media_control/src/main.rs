@@ -67,6 +67,9 @@ enum Button {
     MuteMic
 }
 
+const FONTSIZE: f32 = 84.0;
+const TEXTOFFSET: (i32, i32) = (0, 15);
+
 fn main() {
     let descs: Vec<ButtonDesc> = vec![
     ];
@@ -85,18 +88,17 @@ fn main() {
             ctx.send_rgb(id, [50, 0, 0]);
             match button.unwrap_or("play-pause".to_string()).as_str() {
                 "play-pause" => {
-                    ctx.send_text(id, "󰏤");
-                    ctx.send_rgb(id, [255,100,100]);
+                    ctx.send_text(id, "󰏤", Some(FONTSIZE), Some(TEXTOFFSET));
                     println!("creating play-pause");
                     
                     buttons.borrow_mut().insert(id, Button::PlayPause);
                 },
                 "skip" => {
-                    ctx.send_text(id, "");
+                    ctx.send_text(id, "", Some(FONTSIZE), Some(TEXTOFFSET));
                     buttons.borrow_mut().insert(id, Button::Skip);
                 },
                 "back" => {
-                    ctx.send_text(id, "" );
+                    ctx.send_text(id, "", Some(FONTSIZE), Some(TEXTOFFSET));
                     buttons.borrow_mut().insert(id, Button::Back);
                 },
                 _ => {
@@ -140,8 +142,8 @@ fn main() {
             match button {
                 Button::PlayPause => match c.isplaying() {
                     //lol
-                    true => api.get_ctx().send_text(id.clone().clone(), "󰏤"),
-                    false => api.get_ctx().send_text(id.clone().clone(), "󰐊"),
+                    true => api.get_ctx().send_text(id.clone().clone(), "󰏤", Some(84.0), None),
+                    false => api.get_ctx().send_text(id.clone().clone(), "󰐊", Some(84.0), None),
                 },
                 _ => {}
             }

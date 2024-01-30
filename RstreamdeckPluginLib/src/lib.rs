@@ -26,11 +26,13 @@ impl Context {
         }
     }
 
-    pub fn send_text(&mut self, index: u8, text: &str) {
+    pub fn send_text(&mut self, index: u8, text: &str, fontsize: Option<f32>, text_offset: Option<(i32, i32)>) {
         println!("sending text: {text}");
         self.send_message(ClientToServerMessage::BUTTONREPORT(ButtonReport {
             id: index,
             text: Some(text.to_string()),
+            fontsize,
+            text_offset,
             image: None,
             rgb: None,
         }));
@@ -49,6 +51,8 @@ impl Context {
         self.send_message(ClientToServerMessage::BUTTONREPORT(ButtonReport {
             id: index as u8,
             text: None,
+            fontsize: None,
+            text_offset: None,
             image: Some(serialized),
             rgb: None,
         }));
@@ -58,6 +62,8 @@ impl Context {
         self.send_message(ClientToServerMessage::BUTTONREPORT(ButtonReport {
             id: index,
             text: None,
+            fontsize: None,
+            text_offset: None,
             image: None,
             rgb: Some(rgb),
         }));

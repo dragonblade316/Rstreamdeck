@@ -23,12 +23,12 @@ fn main() {
         descs,
         HashMap::new(),
         |ctx, id, _button, _position, _opts| {
-            ctx.send_text(id, "hi");
+            ctx.send_text(id, "hi", None, None);
             ctx.send_rgb(id, [30, 0, 0])
         },
 
         |ctx, _event, id| {
-            ctx.send_text(id, "bye");
+            ctx.send_text(id, "bye", None, None);
             ctx.send_rgb(id, [0, 0, 30]) 
         },
     ).unwrap();

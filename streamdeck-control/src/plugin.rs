@@ -68,6 +68,8 @@ impl Plugin {
         );
 
         let text: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+        let fontsize: Arc<Mutex<Option<f32>>> = Arc::new(Mutex::new(None));
+        let text_offset: Arc<Mutex<Option<(i32, i32)>>> = Arc::new(Mutex::new(None));
         let rgb: Arc<Mutex<Option<[u8; 3]>>> = Arc::new(Mutex::new(None));
         let image: Arc<Mutex<Option<image::DynamicImage>>> = Arc::new(Mutex::new(None));
 
@@ -77,6 +79,8 @@ impl Plugin {
                 id,
                 image: image.clone(),
                 text: text.clone(),
+                fontsize: fontsize.clone(),
+                text_offset: text_offset.clone(),
                 rgb: rgb.clone(),
             },
         );
@@ -85,6 +89,8 @@ impl Plugin {
             id,
             image: image.clone(),
             text: text.clone(),
+            fontsize: fontsize.clone(),
+            text_offset: text_offset.clone(),
             rgb: rgb.clone(),
             plugin: self.button_press_tx.clone(),
         }))
@@ -123,7 +129,8 @@ impl Plugin {
                 let mut im = button.image.lock().unwrap();
                 let mut rgb = button.rgb.lock().unwrap();
                 let mut text = button.text.lock().unwrap();
-                
+                let mut fontsize = button.fontsize.lock().unwrap();
+                let mut text_offset = button.text_offset.lock().unwrap();
 
                 println!("text thing is this stupid: {:?}", b.text);
                 
@@ -132,7 +139,17 @@ impl Plugin {
                 // *text = b.text;
 
                 match b.text {
-                    Some(t) => *text = Option::Some(t),
+                    Some(t) => *text = Some(t),
+                    None => {}
+                }
+
+                match b.fontsize {
+                    Some(f) => *fontsize = Some(f),
+                    None => {},
+                }
+                
+                match b.text_offset {
+                    Some(o) => *text_offset = Some(o),
                     None => {}
                 }
 
@@ -185,6 +202,8 @@ enum plugin_error {
 struct PluginButton {
     id: u8,
     text: Arc<Mutex<Option<String>>>,
+    fontsize: Arc<Mutex<Option<f32>>>,
+    text_offset: Arc<Mutex<Option<(i32, i32)>>>,
     rgb: Arc<Mutex<Option<[u8; 3]>>>,
     image: Arc<Mutex<Option<image::DynamicImage>>>,
     plugin: Sender<press_state>,
@@ -213,12 +232,20 @@ impl Protocol for PluginButton {
         // println!("plugin text is: {thing:?}");
         thing
     }
+    fn get_fontsize(&self) -> Option<f32> {
+        self.fontsize.lock().unwrap().clone()
+    }
+    fn get_text_offset(&self) -> Option<(i32, i32)> {
+        self.text_offset.lock().unwrap().clone()
+    }
 }
 
 #[derive(Debug)]
 struct PluginButtonInterface {
     id: u8,
     text: Arc<Mutex<Option<String>>>,
+    fontsize: Arc<Mutex<Option<f32>>>,
+    text_offset: Arc<Mutex<Option<(i32, i32)>>>,
     rgb: Arc<Mutex<Option<[u8; 3]>>>,
     image: Arc<Mutex<Option<image::DynamicImage>>>,
 }

@@ -65,6 +65,8 @@ pub struct NewButton {
 pub struct ButtonReport {
     pub id: u8,
     pub text: Option<String>,
+    pub fontsize: Option<f32>,
+    pub text_offset: Option<(i32, i32)>,
     pub rgb: Option<[u8; 3]>,
     //will be encoded in base64 for easier transport over json.
     pub image: Option<String>,
