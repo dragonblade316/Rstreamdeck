@@ -111,16 +111,20 @@ fn main() {
         |ctx, event, id| {
             // ctx.send_rgb(id, [255,255,255]);
             println!("Event: {event:?} triggered");
-            ctx.send_rgb(id, [255,0,0]);
 
             match event {
                 ButtonEvent::Pressed => ctx.send_rgb(id, [0,255,0]),
                 ButtonEvent::Depressed => {
-                    ctx.send_rgb(id, [0,0,255]);
                     match buttons.borrow_mut().get(&id) {
                         Some(i) => match i {
                             Button::PlayPause => {
                                 contrller.borrow_mut().toggle_player()
+                            },
+                            Button::Skip => {
+                                contrller.borrow_mut().skip()
+                            },
+                            Button::Back => {
+                                contrller.borrow_mut().back()
                             },
                             _ => {},
                         }

@@ -12,7 +12,6 @@ It is currently in alpha as it is still unstable and needs a lot of stuff fixed.
 
 ## In the works (needed before I can call it stable):
 - profiles
-- buttons do not have the ability to set their own font size or text position yet
 - finishing the plugin protocol (it works but is missing features such as button position information)
 - documentation
 - rendering glitch fixes
@@ -21,6 +20,7 @@ It is currently in alpha as it is still unstable and needs a lot of stuff fixed.
 - proper logging
 - remove all the annoying print statements peppered through the code
 - general cleanup
+- add cli tooling to assist in making configs
 
 ## I might make someday:
 - gui configuration
