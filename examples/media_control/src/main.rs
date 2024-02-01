@@ -67,8 +67,11 @@ enum Button {
     MuteMic
 }
 
-const FONTSIZE: f32 = 84.0;
-const TEXTOFFSET: (i32, i32) = (0, 15);
+const PLAYPAUSEFONTSIZE: f32 = 84.0;
+const PLAYPAUSETEXTOFFSET: (i32, i32) = (0, 15);
+
+const SKIPBACKFONTSIZE: f32 = 64.0;
+const SKIPBACKTEXTOFFSET: (i32, i32) = (0, 10);
 
 fn main() {
     let descs: Vec<ButtonDesc> = vec![
@@ -88,17 +91,17 @@ fn main() {
             ctx.send_rgb(id, [50, 0, 0]);
             match button.unwrap_or("play-pause".to_string()).as_str() {
                 "play-pause" => {
-                    ctx.send_text(id, "󰏤", Some(FONTSIZE), Some(TEXTOFFSET));
+                    ctx.send_text(id, "󰏤", Some(PLAYPAUSEFONTSIZE), Some(PLAYPAUSETEXTOFFSET));
                     println!("creating play-pause");
                     
                     buttons.borrow_mut().insert(id, Button::PlayPause);
                 },
                 "skip" => {
-                    ctx.send_text(id, "", Some(FONTSIZE), Some(TEXTOFFSET));
+                    ctx.send_text(id, "", Some(SKIPBACKFONTSIZE), Some(SKIPBACKTEXTOFFSET));
                     buttons.borrow_mut().insert(id, Button::Skip);
                 },
                 "back" => {
-                    ctx.send_text(id, "", Some(FONTSIZE), Some(TEXTOFFSET));
+                    ctx.send_text(id, "", Some(SKIPBACKFONTSIZE), Some(SKIPBACKTEXTOFFSET));
                     buttons.borrow_mut().insert(id, Button::Back);
                 },
                 _ => {
@@ -113,7 +116,7 @@ fn main() {
             println!("Event: {event:?} triggered");
 
             match event {
-                ButtonEvent::Pressed => ctx.send_rgb(id, [0,255,0]),
+                ButtonEvent::Pressed => ctx.send_rgb(id, [0,0,0]),
                 ButtonEvent::Depressed => {
                     match buttons.borrow_mut().get(&id) {
                         Some(i) => match i {
@@ -146,8 +149,8 @@ fn main() {
             match button {
                 Button::PlayPause => match c.isplaying() {
                     //lol
-                    true => api.get_ctx().send_text(id.clone().clone(), "󰏤", Some(84.0), None),
-                    false => api.get_ctx().send_text(id.clone().clone(), "󰐊", Some(84.0), None),
+                    true => api.get_ctx().send_text(id.clone().clone(), "󰐊", Some(84.0), None),
+                    false => api.get_ctx().send_text(id.clone().clone(), "󰏤", Some(84.0), None),
                 },
                 _ => {}
             }
