@@ -159,7 +159,7 @@ impl StreamdeckConfig {
             true => {
                 for i in std::fs::read_dir(ppath)? {
                     let path = i.unwrap().path();
-                    map.insert(path.file_name().unwrap().to_string_lossy().to_string(), StreamdeckProfileToml::new(path));
+                    map.insert(path.file_stem().unwrap().to_string_lossy().to_string(), StreamdeckProfileToml::new(path));
                 }
             },
             _ => {},

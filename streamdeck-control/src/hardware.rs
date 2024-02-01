@@ -24,6 +24,7 @@ use crate::config::{StreamdeckProfileToml, StreamdeckConfig};
 use crate::plugin::PluginManager;
 use std::fs;
 use std::io::Read;
+use Rstreamdeck_lib::Instruction;
 
 //#[derive(Debug)]
 pub struct Deck {
@@ -145,6 +146,10 @@ impl Deck {
             });
         }
 
+        for i in profiles.keys() {
+            println!("listing profile {}", i);
+        }
+
 
         println!("deck creation successful");
 
@@ -196,7 +201,6 @@ impl Deck {
 
             if is > was {
                 status.push(ButtonStatus::Pressed);
-                println!("pressed")
             } else if is < was {
                 status.push(ButtonStatus::Depressed)
             } else {
@@ -344,10 +348,10 @@ impl Button {
     }
 
     fn update(&mut self) -> Option<Instruction> {
-        println!("button being updated");
+        // println!("button being updated");
         
         //I hate that this works
-        let proto = match &self.behavior {
+        let proto = match &mut self.behavior {
             Some(i) => i,
             None => return None,
         };
@@ -360,7 +364,6 @@ impl Button {
             Some(t) => self.text = Some(t),
             _ => {}
         }
-        println!("got text {:?}", self.text);
 
         match proto.get_fontsize() {
             Some(f) => self.fontsize = Some(f),
@@ -380,13 +383,11 @@ impl Button {
             Some(rgb) => self.rgb = Some(rgb),
             _ => {}
         }
-        println!("got rgb");
 
         match proto.get_image() {
             Some(i) => self.image = Some(i),
             _ => {}        
         }
-        println!("got image");
         
         proto.get_instruction_request()
     }
@@ -406,10 +407,6 @@ impl Button {
 }
 
 ///This is for instructions to the streamdeck that the plugins cant handle such as profile changes
-enum Instruction {
-    ChangeProfile(String),
-}
-
 pub trait Protocol: Debug {
     fn pressed(&mut self);
     fn depressed(&mut self) {
@@ -430,7 +427,7 @@ pub trait Protocol: Debug {
     fn get_rgb(&self) -> Option<[u8; 3]> {
         None
     }
-    fn get_instruction_request(&self) -> Option<Instruction> {
+    fn get_instruction_request(&mut self) -> Option<Instruction> {
         None
     }
 }

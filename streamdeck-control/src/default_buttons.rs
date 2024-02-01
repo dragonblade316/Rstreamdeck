@@ -1,5 +1,6 @@
 use crate::hardware::Protocol;
 use std::{collections::HashMap, fmt::Debug, format, println, process::Command, unimplemented, sync::{Mutex, Arc}};
+use Rstreamdeck_lib::Instruction;
 
 pub fn new_button_protocol(
     button: String,
@@ -8,6 +9,7 @@ pub fn new_button_protocol(
     println!("button is {:?}", button);
     match button.as_str() {
         "command" => return Some(Box::new(CommandButton::new(opts))),
+        "changeProfileButton" => return Some(Box::new(ChangeProfileButton::new(opts))),
         _ => None,
     }
 }
@@ -90,16 +92,41 @@ impl Protocol for CommandButton {
 }
 
 //TODO: figure out how the heck this is suppoesd to work.
+#[derive(Debug)]
 struct ChangeProfileButton {
     profile: String,
+    switch: bool,
+}
+
+impl ChangeProfileButton {
+    fn new(opts: Option<HashMap<String, String>>) -> Self{
+
+        opts.as_ref().unwrap().get("profile").unwrap();
+        ChangeProfileButton { profile: opts.as_ref().unwrap().get("profile").unwrap().to_string(), switch: false }
+    }
+}
+
+impl Protocol for ChangeProfileButton {
+    fn pressed(&mut self) {
+        self.switch = true;
+    } 
+    fn get_instruction_request(&mut self) -> Option<Instruction> {
+        match self.switch {
+            true => {
+                self.switch = false;
+                Some(Instruction::ChangeProfile(self.profile.to_owned()))
+            },
+            false => None
+        }
+    }
 }
 
 //TODO: add a button for macros and complex keybindings. (most likely using vim keybind notation)
 
 #[derive(Debug)]
-struct not_used;
+struct NotUsed;
 
-impl Protocol for not_used {
+impl Protocol for NotUsed {
     fn pressed(&mut self) {
         return;
     }

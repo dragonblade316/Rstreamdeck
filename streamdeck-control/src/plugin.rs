@@ -110,8 +110,6 @@ impl Plugin {
             return;
         }
 
-        println!("processing report {json_str}");
-
         let json = serde_json::from_str::<ClientToServerMessage>(&json_str.as_str()).unwrap();
 
         match json {
@@ -132,7 +130,6 @@ impl Plugin {
                 let mut fontsize = button.fontsize.lock().unwrap();
                 let mut text_offset = button.text_offset.lock().unwrap();
 
-                println!("text thing is this stupid: {:?}", b.text);
                 
                 *im = image;
                 *rgb = b.rgb;
@@ -161,7 +158,6 @@ impl Plugin {
     }
 
     fn check_button_presses(&mut self) {
-        // println!("checking plugin button status");
         
         let state = match self.button_press_rx.try_recv() {
             Ok(i) => i,
@@ -171,12 +167,8 @@ impl Plugin {
             },
         };
 
-        //TODO: bugbug: despite the buttons being pressed, there is no event ever recived
-        println!("plugin putton status changed");
-
         match state {
             press_state::PRESSED(id) => {
-                println!("plugin button press detected");
                 Rstreamdeck_lib::send_message_to_plugin(&mut self.socket, ServerToClientMessage::PRESSED(id));
             }
             press_state::DEPRESSED(id) => Rstreamdeck_lib::write_string_to_rdeck_socket(
@@ -224,12 +216,10 @@ impl Protocol for PluginButton {
     }
     fn get_rgb(&self) -> Option<[u8; 3]> {
         let thing = self.rgb.lock().unwrap().clone();
-        // println!("plugin rgb is: {thing:?}");
         thing
     }
     fn get_text(&self) -> Option<String> {
         let thing = self.text.lock().unwrap().clone();
-        // println!("plugin text is: {thing:?}");
         thing
     }
     fn get_fontsize(&self) -> Option<f32> {

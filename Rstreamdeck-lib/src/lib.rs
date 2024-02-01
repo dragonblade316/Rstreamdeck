@@ -80,6 +80,13 @@ pub struct ButtonDesc {
     opts: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum Instruction {
+    ChangeProfile(String),
+}
+
+
+
 use std::io::{Read, Write};
 ///reads data from a socket to a string. this is ment to standardize the reading and writing of
 ///json between the plugin library and the application.

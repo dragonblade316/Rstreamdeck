@@ -83,7 +83,7 @@ fn main() {
 
     let mut api = PluginAPI::new(
         "media_control",
-        "",
+        Some(""),
         Some("dragonblade316"),
         descs,
         HashMap::new(),
