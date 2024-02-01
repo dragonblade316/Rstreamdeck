@@ -2,10 +2,37 @@
 brightness = 100
 
 [b1]
-rgb = [200, 200, 0]
+rgb = [255, 0, 0]
+text = "welcome"
 
 [b2]
-icon = "/home/dragonblade316/Pictures/fighter.png"
-rgb = [200, 0, 0]
+rgb = [126, 126, 0]
+text = "to"
+
+[b3]
+rgb = [0, 255, 0]
+
+[b4]
+rgb = [0, 126, 126]
+text = "Rstream"
+
+[b5] 
+rgb = [0, 0, 255]
+text = "deck"
+
+[b7]
+plugin = "media_control"
+button = "back"
+
+[b8]
+plugin = "media_control"
+button = "play-pause"
+
+[b9]
+plugin = "media_control"
+button = "skip"
+
+[b13]
+text = "config"
 button = "command"
-opts = { command = "kitty" }
+opts = {command = "$EDITOR ~/.config/rstreamdeck/"}

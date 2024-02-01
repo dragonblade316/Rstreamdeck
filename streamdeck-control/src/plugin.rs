@@ -299,8 +299,8 @@ impl PluginManager {
 
 
 
-        if !plugin_dir.exists() && !plugin_dir.is_dir() {
-            panic!("not a dir")
+        if !plugin_dir.exists() || !plugin_dir.is_dir() {
+            let _ = std::fs::create_dir(&plugin_dir);
         }
 
 
