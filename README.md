@@ -11,7 +11,6 @@ It is currently in alpha as it is still unstable and needs a lot of stuff fixed.
 - ipc based plugin system
 
 ## In the works (needed before I can call it stable):
-- profiles
 - finishing the plugin protocol (it works but is missing features such as button position information)
 - documentation
 - rendering glitch fixes

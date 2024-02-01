@@ -38,7 +38,7 @@ pub enum ClientToServerMessage {
 pub enum ServerError {
     BAD_INITIAL_REPORT,
     UNEXPECTED_OR_BAD_MESSAGE(String),
-    OTHER,
+    OTHER(String),
 }
 
 #[derive(Serialize, Deserialize, Clone)]
