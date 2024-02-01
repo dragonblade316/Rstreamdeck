@@ -71,7 +71,7 @@ const PLAYPAUSEFONTSIZE: f32 = 84.0;
 const PLAYPAUSETEXTOFFSET: (i32, i32) = (0, 15);
 
 const SKIPBACKFONTSIZE: f32 = 64.0;
-const SKIPBACKTEXTOFFSET: (i32, i32) = (0, 10);
+const SKIPBACKTEXTOFFSET: (i32, i32) = (0, 0);
 
 fn main() {
     let descs: Vec<ButtonDesc> = vec![
@@ -83,7 +83,7 @@ fn main() {
 
     let mut api = PluginAPI::new(
         "media_control",
-        None,
+        "",
         Some("dragonblade316"),
         descs,
         HashMap::new(),
