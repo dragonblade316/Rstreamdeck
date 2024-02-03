@@ -134,6 +134,10 @@ impl StreamdeckConfig {
     fn new(path: PathBuf) -> Result<Self> {
         let mut map: HashMap<String, StreamdeckProfileToml> = HashMap::new();
 
+        if !path.exists() {
+            let _ = std::fs::create_dir(&path);
+        }
+        
         //default path
         let mut dpath = path.clone();
         dpath.push("default.toml");

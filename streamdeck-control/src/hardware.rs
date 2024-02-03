@@ -230,6 +230,15 @@ impl Deck {
             // println!("updating the plugin manager");
             self.manager.update();
             
+            
+
+            match is_pressed {
+                ButtonStatus::Pressed => button.pressed(),
+                ButtonStatus::Depressed => button.depressed(),
+                _ => {}
+            }
+
+
             // yes I see I'm using a match pateren for only one thing. Deal with it. 
             match button.update() { 
                 Some(i) => match i {
@@ -249,6 +258,12 @@ impl Deck {
             // let tx = ctx.text();
             //
 
+            //will not render the button if no changes have been made to renderable data
+            if button.changed == false {
+                continue; 
+            }
+            button.changed = false;
+            
             //<renderer>
             let mut im: DynamicImage;
             if let Some(i) = &button.image {
@@ -279,15 +294,6 @@ impl Deck {
 
             let e = self.deck.set_button_image(index, im);
             //</renderer>
-
-
-
-           
-            match is_pressed {
-                ButtonStatus::Pressed => button.pressed(),
-                ButtonStatus::Depressed => button.depressed(),
-                _ => {}
-            }
         }
     }
 
@@ -312,6 +318,8 @@ pub struct Button {
     rgb: Option<[u8; 3]>,
     image: Option<DynamicImage>,
     behavior: Option<Box<dyn Protocol>>,
+
+    changed: bool,
 }
 
 impl Button {
@@ -332,6 +340,7 @@ impl Button {
             rgb: rgb,
             image: image,
             behavior: behavior,
+            changed: true,
         }
     }
 
@@ -344,6 +353,7 @@ impl Button {
             rgb: None,
             image: None,
             behavior: None,
+            changed: false,
         }
     }
 
@@ -361,31 +371,57 @@ impl Button {
         //stuff with memory so we are going to try this
 
         match proto.get_text() {
-            Some(t) => self.text = Some(t),
+            Some(t) => {
+                if self.text != Some(t.clone()) {
+                    self.text = Some(t);
+                    self.changed = true;
+                }
+            }
             _ => {}
         }
 
         match proto.get_fontsize() {
-            Some(f) => self.fontsize = Some(f),
+            Some(f) => {
+                if self.fontsize != Some(f) {
+                    self.fontsize = Some(f);
+                    self.changed = true;
+                }
+            },
             _ => {}
         }
 
         match proto.get_text_offset() {
             Some(o) => {
+                
+
                 let (x, y) = o;
-                self.text_xoffset = Some(x);
-                self.text_yoffset = Some(y);
+
+                if !(Some(x) == self.text_xoffset && Some(y) == self.text_yoffset) {
+                    self.text_xoffset = Some(x);
+                    self.text_yoffset = Some(y);
+                    self.changed = true;
+                }
             }
             _ => {}
         }
 
         match proto.get_rgb() {
-            Some(rgb) => self.rgb = Some(rgb),
+            Some(rgb) => {
+                if self.rgb == Some(rgb) {
+                    self.rgb = Some(rgb);
+                    self.changed = true;
+                }
+            },
             _ => {}
         }
 
         match proto.get_image() {
-            Some(i) => self.image = Some(i),
+            Some(i) => {
+                if self.image == Some(i.clone()) {
+                    self.image = Some(i);
+                    self.changed = true;
+                }
+            },
             _ => {}        
         }
         
