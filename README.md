@@ -25,6 +25,7 @@ It is currently in alpha as it is still unstable and needs a lot of stuff fixed.
 - obs plugin
 - twitch plugin? (what would this even do that the obs plugin does not)
 - keyboard macros
+- better error handling
 
 ## I might make someday:
 - gui configuration

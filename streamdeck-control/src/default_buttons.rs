@@ -73,7 +73,11 @@ impl CommandButton {
 impl Protocol for CommandButton {
     fn pressed(&mut self) {
         println!("command triggerd");
-        self.command.spawn().unwrap();
+        let t = self.command.spawn();
+        match t {
+            Err(i) => error!("Command failed with {i}"),
+            _ => {}
+        }
     }
     //sorry to whoever has to read this mess
     fn get_text(&self) -> Option<String> {

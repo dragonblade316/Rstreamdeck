@@ -3,6 +3,7 @@ mod default_buttons;
 mod hardware;
 mod plugin;
 
+#[macro_use] extern crate log;
 
 use std::{
     clone,
@@ -14,6 +15,7 @@ use std::{
 
 use clap::Parser;
 use config::load_deck_from_config;
+use simplelog::{CombinedLogger, TermLogger, Config, TerminalMode};
 use streamdeck::{Colour, ImageOptions, StreamDeck, TextOptions, TextPosition};
 
 extern crate streamdeck;
@@ -27,10 +29,18 @@ struct Args {
 }
 
 fn main() {
+    CombinedLogger::init(
+        vec! [
+            TermLogger::new(simplelog::LevelFilter::Warn, Config::default(), TerminalMode::Mixed, simplelog::ColorChoice::Auto),
+            // WriteLogger::new(LevelFilter::Info, Config::default(), File::create("my_rust_binary.log").unwrap()),
+        ]
+    ).expect("logger could not be initalized");
+    info!("Logger initialized");
+    
     let args = Args::parse();
 
     let mut deck = load_deck_from_config(args.config).unwrap();
-    println!("deck works");
+    info!("deck started");
 
     //this might al be moved to deck
     loop {

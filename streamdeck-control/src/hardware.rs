@@ -74,6 +74,7 @@ impl Deck {
             let (name, profile) = i;
 
             fn load_default_font() -> rusttype::Font<'static> {
+                info!("using default font");
                 rusttype::Font::try_from_bytes(include_bytes!("../../assets/SpaceMonoNerdFont-Regular.ttf")).unwrap()
             }
 
@@ -84,7 +85,6 @@ impl Deck {
                             Ok(mut f) => {
                                 let mut buf: Vec<u8> = Vec::new();
                                 f.read_to_end(&mut buf).expect("thing");
-
                                 rusttype::Font::try_from_vec(buf).unwrap_or(load_default_font())
                             },
                             _ => load_default_font()
@@ -112,7 +112,7 @@ impl Deck {
                     Some(con) => con,
                     None => {
                         buttons.push(Button::empty());
-                        eprintln!("button missing");
+                        info!("No button configured at {index}");
                         continue;
                     }
                 };
@@ -121,7 +121,6 @@ impl Deck {
 
                 let button = match bconfig.plugin {
                     Some(p) =>{ 
-                        println!("spawning plugin button");
                         Some(man.get_button(index, p, bconfig.button, bconfig.opts).unwrap())
                     },
                     None => match bconfig.button {
@@ -150,11 +149,9 @@ impl Deck {
             println!("listing profile {}", i);
         }
 
-
-        println!("deck creation successful");
-
-
+        
         man.lock();
+        info!("plugins locked");
 
         //TODO: switch to profiles 
         Ok(Deck {
@@ -168,6 +165,7 @@ impl Deck {
 
     fn change_profile(&mut self, profile: String) {
         if self.profiles.contains_key(&profile) {
+            info!("switching to profile {profile}");
             self.current_profile = profile;
         }
     }
