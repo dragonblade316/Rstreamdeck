@@ -11,7 +11,6 @@ dependencies = [
  "base64",
  "clap 4.4.14",
  "ctrlc",
- "enigo",
  "hidapi",
  "image",
  "imageproc",
@@ -787,6 +786,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc0000e42512c92e31c2252315bda326620a4e034105e900c98ec492fa077b3e"
 dependencies = [
  "rayon",
+]
+
+[[package]]
+name = "keyboard_tricks"
+version = "0.1.0"
+dependencies = [
+ "RstreamdeckPluginLib",
+ "enigo",
+ "log",
+ "simplelog",
 ]
 
 [[package]]

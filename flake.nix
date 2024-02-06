@@ -27,6 +27,7 @@
 					pkgconf
 					libusb1
 					dbus
+					xdotool
 				];
 
 				nativeBuildInputs = with pkgs; [
@@ -55,6 +56,8 @@
 					pkgconf
 					libusb1
 					dbus
+					xdotool
+					
 					cargo
 					rustc
 					rust-analyzer

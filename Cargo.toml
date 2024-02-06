@@ -10,8 +10,9 @@ members = [
   "RstreamdeckPluginLib",
   "./examples/basic_plugin/",
 	"./examples/plugin_test",
-	"./examples/media_control"
-]
+	"./examples/media_control",
+	"./examples/keyboard_tricks"
+	]
 
 
 [workspace.dependencies]
