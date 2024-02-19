@@ -12,6 +12,7 @@ use imageproc::drawing::text_size;
 use imageproc::rgb_image;
 use rusttype::Font::*;
 use rusttype::Scale;
+use streamdeck::Kind;
 
 use crate::default_buttons::new_button_protocol;
 use crate::plugin;
@@ -117,11 +118,17 @@ impl Deck {
                     }
                 };
 
+                //TODO: we need to test this
+                let position: [u8; 2] = match deck.kind() {
+                    Kind::Mini => [index % 3, index / 3],
+                    _ => [index % 5, index / 5],
+                };
+
                 let plugin: Option<&plugin::Plugin>;
 
                 let button = match bconfig.plugin {
                     Some(p) =>{ 
-                        Some(man.get_button(index, p, bconfig.button, bconfig.opts).unwrap())
+                        Some(man.get_button(index, p, bconfig.button, position, bconfig.opts).unwrap())
                     },
                     None => match bconfig.button {
                         Some(b) => new_button_protocol(b, bconfig.opts),

@@ -49,10 +49,9 @@ impl Plugin {
         &mut self,
         id: u8,
         button: Option<String>,
+        position: [u8; 2],
         opts: Option<HashMap<String, String>>,
     ) -> Result<Box<dyn Protocol>> {
-        //TODO: this does not support the streamdeck XL
-        let position: [u8; 2] = [(id / 5), (id % 5)];
 
         let data = ServerToClientMessage::NEWBUTTON(NewButton {
             id,
@@ -355,13 +354,14 @@ impl PluginManager {
         id: u8,
         plugin: String,
         button: Option<String>,
+        position: [u8; 2],
         opts: Option<HashMap<String, String>>,
     ) -> Result<Box<dyn hardware::Protocol>> {
         match self.plugins.get_mut(&plugin) {
             Some(bp) => {
                 let (p, _) = bp;
                 p.used = true;
-                p.spawn_button(id, button, opts)
+                p.spawn_button(id, button, position, opts)
             }
             None => Err(anyhow!("plugin {} not found", plugin)),
         }
